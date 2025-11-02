@@ -9,11 +9,41 @@
         body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh;
             padding: 5px; touch-action: manipulation; overflow-x: hidden; }
+        .sound-control {
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 10;
+            gap: 2px;
+        }
         .sound-toggle { background: linear-gradient(145deg, #4CAF50, #45a049); color: white; border: none; border-radius: 50%;
             width: 50px; height: 50px; font-size: 24px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.3);
             transition: all 0.2s; display: flex; align-items: center; justify-content: center; touch-action: manipulation; }
         .sound-toggle:active { transform: scale(0.95); }
         .sound-toggle.muted { background: linear-gradient(145deg, #f44336, #d32f2f); }
+        .sound-status {
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            margin-top: 1px;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.18);
+            background: rgba(0,0,0,0.06);
+            border-radius: 6px;
+            padding: 0px 3px;
+        }
+        @media (max-width: 600px) {
+            .sound-control {
+                top: 4px;
+                right: 4px;
+            }
+            .sound-status {
+                font-size: 10px;
+                margin-top: 2px;
+            }
+        }
         .container { width: 100%; max-width: 100vw; }
         .title { text-align: center; color: #FFD700; margin-bottom: 8px; font-size: 18px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); font-weight: bold; }
         .created-by { text-align: center; color: #fff; font-size: 13px; margin-top: 0px; margin-bottom: 8px; opacity: 0.85; font-weight: 400; }
@@ -66,11 +96,11 @@
     <div class="container">
         <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 8px; position: relative;">
             <h1 class="title" style="margin: 0;">🎹 Đàn Piano Nhiều Nhạc Cụ Thật</h1>
-            <div style="position: absolute; right: 10px; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+            <div class="sound-control">
                 <button class="sound-toggle muted" id="soundToggle">
                     <span id="soundIcon">🔇</span>
                 </button>
-                <span style="color: white; font-size: 10px; font-weight: bold;" id="soundStatus">Tắt âm</span>
+                <span class="sound-status" id="soundStatus">Tắt âm</span>
             </div>
         </div>
         <div class="created-by">Created by Minh Nhựt</div>
@@ -284,7 +314,6 @@
             if (!audioContext || isMuted) return;
             let sampleBuffer = sampleBuffers[instrument][note];
             let rootNote = note;
-            // Nếu sample không tồn tại (nốt đen), tìm nốt trắng gần nhất rồi dịch pitch
             if (!sampleBuffer) {
                 const whiteNotes = Object.keys(sampleBuffers[instrument]).filter(n=>sampleBuffers[instrument][n]);
                 let minDiff = 99999, best = null;
