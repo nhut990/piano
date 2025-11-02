@@ -72,7 +72,7 @@
             <div class="chords-title">🎸 Nhạc Cụ</div>
             <div class="instrument-selector">
                 <button class="instrument-current" id="instrumentCurrent">
-                    <span id="instrumentName">🎹 Piano</span>
+                    <span id="instrumentName">🎸 Guitar</span>
                     <span id="dropdownArrow">▼</span>
                 </button>
                 <div class="instrument-dropdown" id="instrumentDropdown">
@@ -120,7 +120,7 @@
         let audioContext = null;
         let isMuted = true;
         let currentTone = 'Dm';
-        let currentInstrument = 'piano';
+        let currentInstrument = 'guitar'; // <--- Đặt mặc định là guitar
         
         function initAudioContext() {
             if (!audioContext) {
@@ -133,6 +133,8 @@
         
         window.addEventListener('load', () => {
             initAudioContext();
+            // Cập nhật tên nhạc cụ hiển thị mặc định là guitar
+            document.getElementById('instrumentName').textContent = instrumentSettings[currentInstrument].name;
         });
         
         const soundToggle = document.getElementById('soundToggle');
