@@ -39,20 +39,20 @@
         .piano-container { background: rgba(0,0,0,0.3); backdrop-filter: blur(10px); border-radius: 10px; padding: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow-x: auto; overflow-y: hidden; width: 100%; max-width: 800px; }
         .piano { position: relative; height: 140px; width: 1050px; margin: 0 auto; }
         .white-key { position: absolute; width: 35px; height: 140px; background: linear-gradient(to bottom, #ffffff 0%, #f0f0f0 100%); border: 2px solid #222; border-radius: 0 0 4px 4px; cursor: pointer; user-select: none; touch-action: manipulation; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 4px; font-size: 8px; color: #666; font-weight: bold; transition: all 0.05s; }
-        .white-key.active { background: linear-gradient(to bottom, #e6e6fa 0%, #d9d9f0 100%); box-shadow: inset 0 1px 3px rgba(100, 100, 150, 0.3); }
+        .white-key.active { background: linear-gradient(145deg, #b3e5fc 0%, #4fc3f7 100%); color: #0277bd; }
         .white-key.chord-active {
             background: linear-gradient(to bottom, #FFE680 0%, #FFD966 100%);
             box-shadow: inset 0 1px 3px rgba(255, 200, 0, 0.4);
         }
-        .white-key:active { background: linear-gradient(to bottom, #e8e8e8 0%, #d8d8d8 100%); box-shadow: inset 0 2px 5px rgba(0,0,0,0.2); }
+        .white-key:active { background: linear-gradient(145deg, #b3e5fc 0%, #4fc3f7 100%); color: #0277bd; }
         .black-key { position: absolute; width: 24px; height: 85px; background: linear-gradient(to bottom, #444 0%, #000 100%); border: 1px solid #000; border-radius: 0 0 3px 3px; cursor: pointer; user-select: none; touch-action: manipulation; z-index: 10; color: white; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 3px; font-size: 7px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.5); transition: all 0.05s; }
-        .black-key.active { background: linear-gradient(to bottom, #666 0%, #555 100%); box-shadow: inset 0 1px 3px rgba(150, 150, 150, 0.3); }
+        .black-key.active { background: linear-gradient(145deg, #b3e5fc 0%, #4fc3f7 100%); color: #0277bd; }
         .black-key.chord-active {
             background: linear-gradient(to bottom, #FFE680 0%, #FFD966 100%);
             box-shadow: inset 0 1px 3px rgba(255, 200, 0, 0.4);
             color: #444;
         }
-        .black-key:active { background: linear-gradient(to bottom, #666 0%, #333 100%); box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); }
+        .black-key:active { background: linear-gradient(145deg, #b3e5fc 0%, #4fc3f7 100%); color: #0277bd; }
         .info { text-align: center; color: white; margin-top: 8px; font-size: 11px; line-height: 1.4; }
     </style>
 </head>
@@ -187,47 +187,47 @@
             drum: { type: 'sine', attack: 0.001, decay: 0.3, sustain: 0, release: 0.001, name: '🥁 Drum Kit', isDrum: true }
         };
 
-        // CHORDS: Thêm đầy đủ các hợp âm dùng trong toneChords
+        // HỢP ÂM (đã chỉnh thấp hơn 1 octave so với mặc định)
         const chords = {
-            'C': ['C4', 'E4', 'G4'],
-            'C#': ['C#4', 'F4', 'G#4'],
-            'Cm': ['C4', 'D#4', 'G4'],
-            'C#m': ['C#4', 'E4', 'G#4'],
-            'C7': ['C4', 'E4', 'G4', 'A#4'],
-            'C#7': ['C#4', 'F4', 'G#4', 'B4'],
-            'D': ['D4', 'F#4', 'A4'],
-            'D#': ['D#4', 'G4', 'A#4'],
-            'Dm': ['D4', 'F4', 'A4'],
-            'D#m': ['D#4', 'F#4', 'A#4'],
-            'D7': ['D4', 'F#4', 'A4', 'C5'],
-            'E': ['E4', 'G#4', 'B4'],
-            'Eb': ['D#4', 'G4', 'A#4'],
-            'Em': ['E4', 'G4', 'B4'],
-            'Em7': ['E4', 'G4', 'B4', 'D5'],
-            'E7': ['E4', 'G#4', 'B4', 'D5'],
-            'F': ['F4', 'A4', 'C5'],
-            'F#': ['F#4', 'A#4', 'C#5'],
-            'Fm': ['F4', 'G#4', 'C5'],
-            'F#m': ['F#4', 'A4', 'C#5'],
-            'F#7': ['F#4', 'A#4', 'C#5', 'E5'],
-            'G': ['G4', 'B4', 'D5'],
-            'G#': ['G#4', 'C5', 'D#5'],
-            'Gm': ['G4', 'A#4', 'D5'],
-            'G#m': ['G#4', 'B4', 'D#5'],
-            'G7': ['G4', 'B4', 'D5', 'F5'],
-            'A': ['A4', 'C#5', 'E5'],
-            'A#': ['A#4', 'D5', 'F5'],
-            'Am': ['A4', 'C5', 'E5'],
-            'A7': ['A4', 'C#5', 'E5', 'G4'],
-            'Am7': ['A4', 'C5', 'E5', 'G5'],
-            'B': ['B4', 'D#5', 'F#5'],
-            'Bm': ['B4', 'D5', 'F#5'],
-            'Bb': ['A#4', 'D5', 'F4'],
-            'D#m7': ['D#4', 'F#4', 'A#4', 'C#5'],
-            'Dm7': ['D4', 'F4', 'A4', 'C5'],
-            'F#m7': ['F#4', 'A4', 'C#5', 'E5'],
-            'G#m': ['G#4', 'B4', 'D#5'],
-            'Db': ['C#4', 'F4', 'G#4'],
+            'C': ['C3', 'E3', 'G3'],
+            'C#': ['C#3', 'F3', 'G#3'],
+            'Cm': ['C3', 'D#3', 'G3'],
+            'C#m': ['C#3', 'E3', 'G#3'],
+            'C7': ['C3', 'E3', 'G3', 'A#3'],
+            'C#7': ['C#3', 'F3', 'G#3', 'B3'],
+            'D': ['D3', 'F#3', 'A3'],
+            'D#': ['D#3', 'G3', 'A#3'],
+            'Dm': ['D3', 'F3', 'A3'],
+            'D#m': ['D#3', 'F#3', 'A#3'],
+            'D7': ['D3', 'F#3', 'A3', 'C4'],
+            'E': ['E3', 'G#3', 'B3'],
+            'Eb': ['D#3', 'G3', 'A#3'],
+            'Em': ['E3', 'G3', 'B3'],
+            'Em7': ['E3', 'G3', 'B3', 'D4'],
+            'E7': ['E3', 'G#3', 'B3', 'D4'],
+            'F': ['F3', 'A3', 'C4'],
+            'F#': ['F#3', 'A#3', 'C#4'],
+            'Fm': ['F3', 'G#3', 'C4'],
+            'F#m': ['F#3', 'A3', 'C#4'],
+            'F#7': ['F#3', 'A#3', 'C#4', 'E4'],
+            'G': ['G3', 'B3', 'D4'],
+            'G#': ['G#3', 'C4', 'D#4'],
+            'Gm': ['G3', 'A#3', 'D4'],
+            'G#m': ['G#3', 'B3', 'D#4'],
+            'G7': ['G3', 'B3', 'D4', 'F4'],
+            'A': ['A3', 'C#4', 'E4'],
+            'A#': ['A#3', 'D4', 'F4'],
+            'Am': ['A3', 'C4', 'E4'],
+            'A7': ['A3', 'C#4', 'E4', 'G3'],
+            'Am7': ['A3', 'C4', 'E4', 'G4'],
+            'B': ['B3', 'D#4', 'F#4'],
+            'Bm': ['B3', 'D4', 'F#4'],
+            'Bb': ['A#3', 'D4', 'F3'],
+            'D#m7': ['D#3', 'F#3', 'A#3', 'C#4'],
+            'Dm7': ['D3', 'F3', 'A3', 'C4'],
+            'F#m7': ['F#3', 'A3', 'C#4', 'E4'],
+            'G#m': ['G#3', 'B3', 'D#4'],
+            'Db': ['C#3', 'F3', 'G#3'],
         };
 
         // Tone và các hợp âm cho mỗi tone
@@ -266,12 +266,31 @@
             key.dataset.note = data.note;
             key.textContent = data.note;
             key.style.left = data.left + 'px';
+
+            // Sử dụng mouseup/mousedown/touchstart/touchend để hiển thị trạng thái nhấn phím màu xanh nhạt
             const playKeyNote = () => playNote(data.note, key);
-            key.addEventListener('touchstart', (e) => {
-                e.preventDefault();
+
+            // Bắt đầu nhấn
+            key.addEventListener('mousedown', () => {
+                key.classList.add('active');
                 playKeyNote();
             });
-            key.addEventListener('mousedown', playKeyNote);
+            key.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                key.classList.add('active');
+                playKeyNote();
+            });
+            // Kết thúc nhấn
+            key.addEventListener('mouseup', () => {
+                key.classList.remove('active');
+            });
+            key.addEventListener('mouseleave', () => {
+                key.classList.remove('active');
+            });
+            key.addEventListener('touchend', () => {
+                key.classList.remove('active');
+            });
+
             return key;
         }
         whiteKeysData.forEach(data => {
