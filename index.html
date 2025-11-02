@@ -14,14 +14,8 @@
             transition: all 0.2s; display: flex; align-items: center; justify-content: center; touch-action: manipulation; }
         .sound-toggle:active { transform: scale(0.95); }
         .sound-toggle.muted { background: linear-gradient(145deg, #f44336, #d32f2f); }
-        .sound-toggle-container {
-            display: flex; flex-direction: column; align-items: center;
-            position: absolute; left: 50%; top: -62px; transform: translateX(-50%);
-            z-index: 3;
-        }
         .container { width: 100%; max-width: 100vw; }
-        .title { text-align: center; color: #FFD700; margin-bottom: 8px; font-size: 18px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); font-weight: bold; font-family: Arial, sans-serif; position: relative; }
-        .credit { text-align: center; margin-top: 0px; margin-bottom: 10px; font-size: 15px; color: #fff; font-weight: bold; font-family: Arial, sans-serif; text-shadow: 1px 1px 8px rgba(0,0,0,0.25); letter-spacing: 1px;}
+        .title { text-align: center; color: #FFD700; margin-bottom: 8px; font-size: 18px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); font-weight: bold; }
         .chords-section { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 10px; padding: 6px; margin-bottom: 4px; max-width: 280px; margin-left: 8px; margin-right: auto; }
         .instrument-selector { position: relative; margin-bottom: 8px; }
         .instrument-current { background: linear-gradient(145deg, #9C27B0, #7B1FA2); color: white; border: none; border-radius: 6px; padding: 8px 12px;
@@ -63,16 +57,14 @@
 </head>
 <body>
     <div class="container">
-        <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 8px; position: relative;">
-            <!-- Nút bật/tắt âm nằm trên tiêu đề -->
-            <div class="sound-toggle-container">
+        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 8px; position: relative;">
+            <h1 class="title" style="margin: 0;">🎹 Đàn Piano</h1>
+            <div style="position: absolute; right: 10px; display: flex; flex-direction: column; align-items: center; gap: 4px;">
                 <button class="sound-toggle muted" id="soundToggle">
                     <span id="soundIcon">🔇</span>
                 </button>
                 <span style="color: white; font-size: 10px; font-weight: bold;" id="soundStatus">Tắt âm</span>
             </div>
-            <h1 class="title" style="margin: 0;">🎹 Đàn Piano</h1>
-            <div class="credit">Created by Minh Nhut</div>
         </div>
 
         <div class="chords-section">
@@ -85,12 +77,26 @@
                 <div class="instrument-dropdown" id="instrumentDropdown">
                     <button class="instrument-option" data-instrument="piano">🎹 Piano</button>
                     <button class="instrument-option" data-instrument="guitar">🎸 Guitar</button>
-                    <button class="instrument-option" data-instrument="organ">🎛️ Organ</button>
-                    <button class="instrument-option" data-instrument="flute">🎺 Flute</button>
-                    <button class="instrument-option" data-instrument="drum">🥁 Drum Kit</button>
                     <button class="instrument-option" data-instrument="violin">🎻 Violin</button>
+                    <button class="instrument-option" data-instrument="flute">🎺 Flute</button>
+                    <button class="instrument-option" data-instrument="organ">🎛️ Organ</button>
                     <button class="instrument-option" data-instrument="synth">🎹 Synth</button>
                     <button class="instrument-option" data-instrument="bass">🎸 Bass</button>
+                    <button class="instrument-option" data-instrument="trumpet">🎺 Trumpet</button>
+                    <button class="instrument-option" data-instrument="saxophone">🎷 Saxophone</button>
+                    <button class="instrument-option" data-instrument="harp">🎵 Harp</button>
+                    <button class="instrument-option" data-instrument="xylophone">🎼 Xylophone</button>
+                    <button class="instrument-option" data-instrument="marimba">🥁 Marimba</button>
+                    <button class="instrument-option" data-instrument="bells">🔔 Bells</button>
+                    <button class="instrument-option" data-instrument="mandolin">🎸 Mandolin</button>
+                    <button class="instrument-option" data-instrument="ukulele">🎸 Ukulele</button>
+                    <button class="instrument-option" data-instrument="harmonica">🎙️ Harmonica</button>
+                    <button class="instrument-option" data-instrument="oboe">🎺 Oboe</button>
+                    <button class="instrument-option" data-instrument="clarinet">🎺 Clarinet</button>
+                    <button class="instrument-option" data-instrument="french-horn">🎺 French Horn</button>
+                    <button class="instrument-option" data-instrument="trombone">🎺 Trombone</button>
+                    <button class="instrument-option" data-instrument="cello">🎻 Cello</button>
+                    <button class="instrument-option" data-instrument="drum">🥁 Drum Kit</button>
                 </div>
             </div>
             
@@ -154,18 +160,33 @@
             'C6': 1046.50
         };
 
-        // GIẢ LẬP ÂM THANH NHẠC CỤ KHÁC BIỆT NHẤT CÓ THỂ VỚI WebAudio API
+        // INSTRUMENTS
         const instrumentSettings = {
-            piano:      { type: 'sine',     attack: 0.005, decay: 1.2,  sustain: 0.5,  release: 0.2, name: '🎹 Piano' },
-            guitar:     { type: 'triangle', attack: 0.015, decay: 0.6,  sustain: 0.25, release: 0.08, name: '🎸 Guitar' },
-            organ:      { type: 'square',   attack: 0.001, decay: 2.2,  sustain: 0.7,  release: 0.001, name: '🎛️ Organ' },
-            flute:      { type: 'sine',     attack: 0.19,  decay: 1.1,  sustain: 0.22, release: 0.12, name: '🎺 Flute' },
-            drum:       { type: 'sine',     attack: 0.001, decay: 0.22, sustain: 0,    release: 0.001, name: '🥁 Drum Kit', isDrum: true },
-            violin:     { type: 'sawtooth', attack: 0.09,  decay: 1.3,  sustain: 0.43, release: 0.03, name: '🎻 Violin' },
-            synth:      { type: 'sawtooth', attack: 0.03,  decay: 0.7,  sustain: 0.2,  release: 0.02, name: '🎹 Synth' },
-            bass:       { type: 'square',   attack: 0.01,  decay: 0.5,  sustain: 0.23, release: 0.03, name: '🎸 Bass' }
+            piano: { type: 'sine', attack: 0.005, decay: 2.0, sustain: 0.4, release: 0.2, name: '🎹 Piano' },
+            guitar: { type: 'triangle', attack: 0.01, decay: 1.2, sustain: 0.3, release: 0.1, name: '🎸 Guitar' },
+            violin: { type: 'sawtooth', attack: 0.1, decay: 2.0, sustain: 0.35, release: 0.001, name: '🎻 Violin' },
+            flute: { type: 'sine', attack: 0.1, decay: 1.5, sustain: 0.25, release: 0.05, name: '🎺 Flute' },
+            organ: { type: 'square', attack: 0.001, decay: 2.5, sustain: 0.4, release: 0.001, name: '🎛️ Organ' },
+            synth: { type: 'sawtooth', attack: 0.02, decay: 1.0, sustain: 0.3, release: 0.001, name: '🎹 Synth' },
+            bass: { type: 'sine', attack: 0.02, decay: 0.8, sustain: 0.25, release: 0.05, name: '🎸 Bass' },
+            trumpet: { type: 'square', attack: 0.08, decay: 1.5, sustain: 0.3, release: 0.001, name: '🎺 Trumpet' },
+            saxophone: { type: 'sawtooth', attack: 0.06, decay: 1.8, sustain: 0.35, release: 0.001, name: '🎷 Saxophone' },
+            harp: { type: 'sine', attack: 0.001, decay: 1.2, sustain: 0.15, release: 0.001, name: '🎵 Harp' },
+            xylophone: { type: 'sine', attack: 0.001, decay: 0.5, sustain: 0.1, release: 0.001, name: '🎼 Xylophone' },
+            marimba: { type: 'sine', attack: 0.002, decay: 0.7, sustain: 0.15, release: 0.001, name: '🥁 Marimba' },
+            bells: { type: 'sine', attack: 0.001, decay: 2.0, sustain: 0.2, release: 0.001, name: '🔔 Bells' },
+            mandolin: { type: 'triangle', attack: 0.003, decay: 0.6, sustain: 0.2, release: 0.001, name: '🎸 Mandolin' },
+            ukulele: { type: 'triangle', attack: 0.004, decay: 0.5, sustain: 0.15, release: 0.001, name: '🎸 Ukulele' },
+            harmonica: { type: 'triangle', attack: 0.03, decay: 0.9, sustain: 0.3, release: 0.08, name: '🎙️ Harmonica' },
+            oboe: { type: 'sawtooth', attack: 0.08, decay: 1.3, sustain: 0.3, release: 0.001, name: '🎺 Oboe' },
+            clarinet: { type: 'triangle', attack: 0.08, decay: 1.0, sustain: 0.35, release: 0.06, name: '🎺 Clarinet' },
+            'french-horn': { type: 'square', attack: 0.1, decay: 1.6, sustain: 0.32, release: 0.001, name: '🎺 French Horn' },
+            trombone: { type: 'sawtooth', attack: 0.09, decay: 1.4, sustain: 0.3, release: 0.001, name: '🎺 Trombone' },
+            cello: { type: 'sawtooth', attack: 0.12, decay: 1.9, sustain: 0.33, release: 0.001, name: '🎻 Cello' },
+            drum: { type: 'sine', attack: 0.001, decay: 0.3, sustain: 0, release: 0.001, name: '🥁 Drum Kit', isDrum: true }
         };
 
+        // CHORDS: Thêm đầy đủ các hợp âm dùng trong toneChords
         const chords = {
             'C': ['C4', 'E4', 'G4'],
             'C#': ['C#4', 'F4', 'G#4'],
@@ -208,6 +229,7 @@
             'Db': ['C#4', 'F4', 'G#4'],
         };
 
+        // Tone và các hợp âm cho mỗi tone
         const toneChords = {
             'Dm': ['Dm', 'Gm', 'Bb', 'C', 'F', 'G', 'A7', 'Am', 'E'],
             'Bm': ['Bm', 'Em', 'D#', 'F#', 'B', 'C#', 'F#7', 'F#m', 'G#'],
@@ -217,6 +239,7 @@
             'Em': ['Em', 'Am', 'G', 'Bb', 'D', 'E', 'A7', 'Bm', 'F#']
         };
 
+        // Piano key data
         const piano = document.getElementById('piano');
         const whiteKeysData = [
             {note: 'C3', left: 0}, {note: 'D3', left: 35}, {note: 'E3', left: 70},
@@ -257,6 +280,7 @@
             piano.appendChild(createKey(true, data));
         });
 
+        // PLAY NOTE
         function playNote(note, keyElement, isChord = false) {
             if (!audioContext || !notes[note] || isMuted) return;
             initAudioContext();
@@ -298,6 +322,7 @@
             osc.stop(now + settings.decay);
         }
 
+        // PLAY CHORD: Hiển thị nốt và phát âm
         function playChord(chordName) {
             const chordNotes = chords[chordName];
             if (!chordNotes) {
@@ -310,7 +335,9 @@
             });
         }
 
+        // Hiển thị các hợp âm cho từng tone, tô màu nốt
         function showChordOnKeys(chordName) {
+            // Xóa trạng thái chord-active trên tất cả phím
             document.querySelectorAll('.white-key,.black-key').forEach(key => {
                 key.classList.remove('chord-active');
             });
@@ -322,6 +349,7 @@
             });
         }
 
+        // TONE SELECTOR
         function renderToneSelector() {
             const selector = document.getElementById('toneSelector');
             selector.innerHTML = '';
@@ -341,6 +369,7 @@
             });
         }
 
+        // CHORD GRID
         function renderChords(tone) {
             const grid = document.getElementById('chordsGrid');
             const title = document.getElementById('currentTone');
@@ -359,6 +388,7 @@
             }
         }
 
+        // INSTRUMENT SELECTOR
         const instrumentCurrent = document.getElementById('instrumentCurrent');
         const instrumentDropdown = document.getElementById('instrumentDropdown');
         const instrumentName = document.getElementById('instrumentName');
@@ -385,6 +415,7 @@
 
         renderToneSelector();
         renderChords(currentTone);
+        // Hiển thị nốt hợp âm mặc định
         showChordOnKeys(toneChords[currentTone][0]);
     </script>
 </body>
