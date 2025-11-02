@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Đàn Piano - Tone Dm</title>
     <style>
+        /* ...css giữ nguyên như bản trước... */
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh;
@@ -69,6 +70,12 @@
         </div>
         <div class="created-by">Created by Minh Nhựt</div>
         <div class="chords-section">
+            <div style="text-align:center; margin: 4px 0;">
+                <label style="color: #FFD700; font-size: 13px; user-select:none;">
+                    <input type="checkbox" id="sustainChord" style="accent-color:#02a5ff;vertical-align:middle;">
+                    Ngân hợp âm
+                </label>
+            </div>
             <div class="chords-title">🎸 Nhạc Cụ</div>
             <div class="instrument-selector">
                 <button class="instrument-current" id="instrumentCurrent">
@@ -121,6 +128,7 @@
         let isMuted = true;
         let currentTone = 'Dm';
         let currentInstrument = 'guitar'; // <--- Đặt mặc định là guitar
+        let isSustainChord = false;
         
         function initAudioContext() {
             if (!audioContext) {
@@ -135,6 +143,10 @@
             initAudioContext();
             // Cập nhật tên nhạc cụ hiển thị mặc định là guitar
             document.getElementById('instrumentName').textContent = instrumentSettings[currentInstrument].name;
+        });
+
+        document.getElementById('sustainChord').addEventListener('change', function() {
+            isSustainChord = this.checked;
         });
         
         const soundToggle = document.getElementById('soundToggle');
@@ -310,7 +322,9 @@
                 const activeClass = isChord ? 'chord-active' : 'active';
                 keyElement.classList.add(activeClass);
                 const settings = instrumentSettings[currentInstrument];
-                const duration = settings.isDrum ? 150 : (settings.decay * 1000);
+                // Nếu là hợp âm và đang bật ngân hợp âm thì kéo dài hơn
+                let duration = settings.isDrum ? 150 : (settings.decay * 1000);
+                if (isChord && isSustainChord) duration += 1000; // ngân thêm 1s cho hợp âm
                 setTimeout(() => {
                     keyElement.classList.remove(activeClass);
                 }, duration);
@@ -339,9 +353,13 @@
             const now = audioContext.currentTime;
             gain.gain.setValueAtTime(0, now);
             gain.gain.linearRampToValueAtTime(settings.sustain, now + settings.attack);
-            gain.gain.exponentialRampToValueAtTime(settings.release, now + settings.decay);
+
+            // Nếu là hợp âm và đang bật ngân hợp âm thì kéo dài hơn
+            let decayTime = settings.decay;
+            if (isChord && isSustainChord) decayTime += 1.0; // kéo dài 1s
+            gain.gain.exponentialRampToValueAtTime(settings.release, now + decayTime);
             osc.start(now);
-            osc.stop(now + settings.decay);
+            osc.stop(now + decayTime);
         }
 
         // PLAY CHORD: Hiển thị nốt và phát âm
