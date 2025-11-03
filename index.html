@@ -16,10 +16,6 @@
     #stopBtn { background:#ff9800; color:white;}
     #playBtn { background:#388e3c; color:white;}
     #downloadBtn { background:#1976d2; color:white; display:inline-block;}
-    .recorder-controls button:disabled, .recorder-controls a:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-    }
     .recording-status {
       display: none;
       color: #ff1744;
@@ -412,13 +408,14 @@
         'F#m7': ['F#3', 'A3', 'C#4', 'E4'], 'Db': ['C#3', 'F3', 'G#3']
     };
 
+    // ==== Sửa phần này: tone User y hệt như tone Dm ====
     const toneChords = {
         'Dm': ['Dm', 'Gm', 'Bb', 'C', 'F', 'G', 'A7', 'Am', 'E'],
         'Bm': ['Bm', 'Em', 'D#', 'F#', 'B', 'C#', 'F#7', 'F#m', 'G#'],
         'Am': ['Am', 'Dm', 'G', 'Bb', 'Eb', 'A', 'D7', 'Em', 'B'],
         'D#m': ['D#m', 'G#m', 'B', 'C#', 'F#', 'G#', 'C#7', 'C#m', 'F#7'],
         'Gm': ['Gm', 'Cm', 'Bb', 'Db', 'F', 'G', 'D7', 'D', 'A'],
-        'User': ['Em', 'Am', 'G', 'Bb', 'D', 'E', 'A7', 'Bm', 'F#']
+        'User': ['Dm', 'Gm', 'Bb', 'C', 'F', 'G', 'A7', 'Am', 'E']
     };
 
     let userChords = JSON.parse(JSON.stringify(chords));
