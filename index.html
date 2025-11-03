@@ -13,9 +13,13 @@
       cursor: pointer; transition: all 0.3s;
     }
     #recordBtn { background:#d32f2f; color:white;}
-    #stopBtn { background:#ff9800; color:white; display:none;}
-    #playBtn { background:#388e3c; color:white; display:none;}
-    #downloadBtn { background:#1976d2; color:white; display:none;}
+    #stopBtn { background:#ff9800; color:white;}
+    #playBtn { background:#388e3c; color:white;}
+    #downloadBtn { background:#1976d2; color:white; display:inline-block;}
+    .recorder-controls button:disabled, .recorder-controls a:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
     .recording-status {
       display: none;
       color: #ff1744;
@@ -153,9 +157,9 @@
       <div class="recording-status" id="recordingStatus">🔴 ĐANG GHI ÂM</div>
       <div class="recording-timer" id="recordingTimer" style="display:none;">00:00</div>
       <button id="recordBtn">🎙️ Ghi âm</button>
-      <button id="stopBtn">⏹️ Dừng</button>
-      <button id="playBtn">▶️ Nghe lại</button>
-      <a id="downloadBtn" href="#" download="danpiano_record.wav">⬇️ Tải ghi âm (.wav)</a>
+      <button id="stopBtn" disabled>⏹️ Dừng</button>
+      <button id="playBtn" disabled>▶️ Nghe lại</button>
+      <a id="downloadBtn" href="#" download="danpiano_record.wav" style="display:none;">⬇️ Tải ghi âm (.wav)</a>
     </div>
     <audio id="audioPlayback" controls style="display:none;"></audio>
     <div class="chords-section">
@@ -414,7 +418,7 @@
         'Am': ['Am', 'Dm', 'G', 'Bb', 'Eb', 'A', 'D7', 'Em', 'B'],
         'D#m': ['D#m', 'G#m', 'B', 'C#', 'F#', 'G#', 'C#7', 'C#m', 'F#7'],
         'Gm': ['Gm', 'Cm', 'Bb', 'Db', 'F', 'G', 'D7', 'D', 'A'],
-        'User': ['Dm', 'Gm', 'Bb', 'C', 'F', 'G', 'A7', 'Am', 'E']
+        'User': ['Em', 'Am', 'G', 'Bb', 'D', 'E', 'A7', 'Bm', 'F#']
     };
 
     let userChords = JSON.parse(JSON.stringify(chords));
@@ -536,6 +540,7 @@
         showChordOnKeys(toneChords[currentTone][0]);
     }
 
+    // ==== CHORD EDITOR ====
     const modal = document.getElementById('chordEditModal');
     const overlay = document.getElementById('modalOverlay');
     const editModeBtn = document.getElementById('editModeBtn');
@@ -546,6 +551,7 @@
 
     let currentPreviewNotes = [];
 
+    // Hàm cập nhật preview khi người dùng gõ
     chordNameInput.addEventListener('input', () => {
         const inputChord = chordNameInput.value.trim();
         updateChordPreview(inputChord);
@@ -558,6 +564,7 @@
             return;
         }
 
+        // Tìm hợp âm trong danh sách có sẵn
         const chordNotes = chords[chordName];
         
         if (chordNotes) {
@@ -579,6 +586,7 @@
         modal.classList.add('active');
         overlay.classList.add('active');
         
+        // Focus vào input
         setTimeout(() => chordNameInput.focus(), 100);
     }
 
@@ -608,19 +616,26 @@
             return;
         }
         
+        // Kiểm tra xem hợp âm có tồn tại trong danh sách không
         if (!chords[newName]) {
             alert(`❌ Hợp âm "${newName}" chưa có trong danh sách!\n\nCác hợp âm có sẵn: ${Object.keys(chords).slice(0, 20).join(', ')}...`);
             return;
         }
         
+        // Lấy nốt nhạc từ danh sách hợp âm có sẵn
         const chordNotes = chords[newName];
+        
+        // Lưu vào userChords
         userChords[newName] = [...chordNotes];
+        
+        // Cập nhật tên trong danh sách tone User
         userToneChords[editingChordIndex] = newName;
         
         closeChordEditor();
         renderChords('User');
         showChordOnKeys(newName);
         
+        // Hiển thị thông báo thành công
         alert(`✅ Đã lưu hợp âm "${newName}" với các nốt: ${chordNotes.join(', ')}`);
     });
 
@@ -655,9 +670,9 @@
       
       document.getElementById('recordingStatus').classList.add('active');
       
-      this.style.display = 'none';
-      document.getElementById("stopBtn").style.display = 'inline-block';
-      document.getElementById("playBtn").style.display = 'none';
+      this.disabled = true;
+      document.getElementById("stopBtn").disabled = false;
+      document.getElementById("playBtn").disabled = true;
       document.getElementById("audioPlayback").style.display = "none";
       document.getElementById("downloadBtn").style.display = "none";
     };
@@ -674,8 +689,8 @@
         document.getElementById('recordingStatus').classList.remove('active');
         document.getElementById('recordingTimer').style.display = 'none';
         
-        this.style.display = 'none';
-        document.getElementById("recordBtn").style.display = 'inline-block';
+        this.disabled = true;
+        document.getElementById("recordBtn").disabled = false;
       }
     };
 
@@ -697,7 +712,7 @@
           let audio = document.getElementById("audioPlayback");
           audio.src = wavUrl;
           audio.style.display = "block";
-          document.getElementById("playBtn").style.display = 'inline-block';
+          document.getElementById("playBtn").disabled = false;
           let downloadBtn = document.getElementById("downloadBtn");
           downloadBtn.href = wavUrl;
           downloadBtn.style.display = "inline-block";
