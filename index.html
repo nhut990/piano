@@ -82,19 +82,6 @@
     .title { text-align: center; color: #FFD700; margin-bottom: 8px; font-size: 18px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); font-weight: bold; }
     .created-by { text-align: center; color: #fff; font-size: 13px; margin-top: 0px; margin-bottom: 8px; opacity: 0.85; font-weight: 400; }
     .chords-section { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 10px; padding: 6px; margin-bottom: 4px; max-width: 300px; margin-left: 8px; margin-right: auto; }
-    .help-section { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 10px; padding: 6px; margin-bottom: 4px; max-width: 300px; margin-left: auto; margin-right: 8px; position: relative; }
-    .help-toggle { background: linear-gradient(145deg, #2196F3, #1976D2); color: white; border: none; border-radius: 6px; padding: 8px 12px; font-size: 13px; font-weight: bold; cursor: pointer; width: 100%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3); transition: all 0.2s; }
-    .help-toggle:active { transform: scale(0.98); }
-    .help-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; background: rgba(0,0,0,0.7); border-radius: 6px; margin-top: 6px; }
-    .help-content.open { max-height: 600px; overflow-y: auto; }
-    .help-item { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.1); color: white; font-size: 12px; line-height: 1.6; }
-    .help-item:last-child { border-bottom: none; }
-    .help-item strong { color: #FFD700; font-size: 13px; display: block; margin-bottom: 4px; }
-    .sections-container { display: flex; gap: 8px; align-items: flex-start; justify-content: space-between; margin-bottom: 4px; }
-    @media (max-width: 650px) {
-      .sections-container { flex-direction: column; }
-      .chords-section, .help-section { max-width: 100%; margin-left: 8px; margin-right: 8px; }
-    }
     .instrument-selector { position: relative; margin-bottom: 8px; }
     .instrument-current { background: linear-gradient(145deg, #9C27B0, #7B1FA2); color: white; border: none; border-radius: 6px; padding: 8px 12px;
         font-size: 13px; font-weight: bold; cursor: pointer; width: 100%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
@@ -175,46 +162,6 @@
       <a id="downloadBtn" href="#" download="danpiano_record.wav" style="display:none;">⬇️ Tải ghi âm (.wav)</a>
     </div>
     <audio id="audioPlayback" controls style="display:none;"></audio>
-    
-    <!-- Di chuyển Help Section lên đầu -->
-    <div class="help-section" style="max-width: 100%; margin: 0 8px 8px 8px;">
-      <button class="help-toggle" id="helpToggle">
-        <span>📖 Hướng dẫn sử dụng</span>
-        <span id="helpArrow">▼</span>
-      </button>
-      <div class="help-content" id="helpContent">
-        <div class="help-item">
-          <strong>🎹 Chơi đàn Piano:</strong>
-          Chạm/click vào các phím đàn để phát âm thanh
-        </div>
-        <div class="help-item">
-          <strong>🎸 Chọn Nhạc Cụ:</strong>
-          Nhấn vào nút nhạc cụ để mở menu chọn nhạc cụ khác nhau (Piano, Guitar, Saxophone, v.v.)
-        </div>
-        <div class="help-item">
-          <strong>🎵 Chọn Tone:</strong>
-          Nhấn các nút Tone (Dm, Bm, Am...) để thay đổi tone hợp âm
-        </div>
-        <div class="help-item">
-          <strong>🎸 Chơi Hợp Âm:</strong>
-          Nhấn các nút hợp âm (Dm, Gm, Bb...) để chơi hợp âm tự động
-        </div>
-        <div class="help-item">
-          <strong>✏️ Chỉnh sửa Tone User:</strong>
-          Chọn tone "User" → Nhấn "Edit" → Click vào hợp âm muốn sửa → Nhập tên hợp âm mới (VD: Cm, G7...) → Lưu
-        </div>
-        <div class="help-item">
-          <strong>🎙️ Ghi âm:</strong>
-          Nhấn "Ghi âm" → Chơi nhạc → Nhấn "Dừng" → Nhấn "Nghe lại" hoặc "Tải ghi âm"
-        </div>
-        <div class="help-item">
-          <strong>🔊 Bật/Tắt âm:</strong>
-          Nhấn nút loa ở góc trên bên phải để bật/tắt âm thanh
-        </div>
-      </div>
-    </div>
-
-    <!-- Phần Chords Section giữ nguyên -->
     <div class="chords-section">
       <div class="chords-title">🎸 Nhạc Cụ</div>
       <div class="instrument-selector">
@@ -244,12 +191,11 @@
       </div>
       <div class="chords-grid" id="chordsGrid"></div>
     </div>
-
     <div class="modal-overlay" id="modalOverlay"></div>
     <div class="chord-edit-modal" id="chordEditModal">
       <div class="modal-title">Chỉnh sửa hợp âm Tone User</div>
       <input type="text" id="chordNameInput" class="modal-input" placeholder="Nhập tên hợp âm (VD: Dm, A7, G, Cmaj7...)">
-      <div class="modal-hint">💡 Gõ tên hợp âm (VD Cm, G, A7...), thằng Nhựt nó sẽ tự tính nốt của hợp âm đó!</div>
+      <div class="modal-hint">💡 Gõ tên hợp âm (VD Cm), thằng Nhựt nó sẽ tự tính nốt!</div>
       <div class="modal-preview" id="chordPreview">
         <span style="opacity: 0.6;">Nhập hợp âm để xem nốt nhạc...</span>
       </div>
@@ -360,16 +306,6 @@
         soundToggle.classList.toggle('muted', isMuted);
         soundIcon.textContent = isMuted ? '🔇' : '🔊';
         soundStatus.textContent = isMuted ? 'Tắt âm' : 'Bật âm';
-    });
-
-    // Help toggle functionality
-    const helpToggle = document.getElementById('helpToggle');
-    const helpContent = document.getElementById('helpContent');
-    const helpArrow = document.getElementById('helpArrow');
-
-    helpToggle.addEventListener('click', () => {
-        helpContent.classList.toggle('open');
-        helpArrow.textContent = helpContent.classList.contains('open') ? '▲' : '▼';
     });
 
     const piano = document.getElementById('piano');
@@ -615,6 +551,7 @@
 
     let currentPreviewNotes = [];
 
+    // Hàm cập nhật preview khi người dùng gõ
     chordNameInput.addEventListener('input', () => {
         const inputChord = chordNameInput.value.trim();
         updateChordPreview(inputChord);
@@ -627,6 +564,7 @@
             return;
         }
 
+        // Tìm hợp âm trong danh sách có sẵn
         const chordNotes = chords[chordName];
         
         if (chordNotes) {
@@ -648,6 +586,7 @@
         modal.classList.add('active');
         overlay.classList.add('active');
         
+        // Focus vào input
         setTimeout(() => chordNameInput.focus(), 100);
     }
 
@@ -677,19 +616,26 @@
             return;
         }
         
+        // Kiểm tra xem hợp âm có tồn tại trong danh sách không
         if (!chords[newName]) {
             alert(`❌ Hợp âm "${newName}" chưa có trong danh sách!\n\nCác hợp âm có sẵn: ${Object.keys(chords).slice(0, 20).join(', ')}...`);
             return;
         }
         
+        // Lấy nốt nhạc từ danh sách hợp âm có sẵn
         const chordNotes = chords[newName];
+        
+        // Lưu vào userChords
         userChords[newName] = [...chordNotes];
+        
+        // Cập nhật tên trong danh sách tone User
         userToneChords[editingChordIndex] = newName;
         
         closeChordEditor();
         renderChords('User');
         showChordOnKeys(newName);
         
+        // Hiển thị thông báo thành công
         alert(`✅ Đã lưu hợp âm "${newName}" với các nốt: ${chordNotes.join(', ')}`);
     });
 
