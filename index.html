@@ -1,507 +1,605 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Đàn Piano Nhạc Cụ Thật</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh;
-            padding: 5px; touch-action: manipulation; overflow-x: hidden; }
-        .container { width: 100%; max-width: 100vw; position: relative; }
-        .sound-control {
-            position: absolute;
-            top: 8px;
-            right: 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            z-index: 100;
-            gap: 2px;
-        }
-        .sound-toggle { background: linear-gradient(145deg, #4CAF50, #45a049); color: white; border: none; border-radius: 50%;
-            width: 50px; height: 50px; font-size: 24px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-            transition: all 0.2s; display: flex; align-items: center; justify-content: center; touch-action: manipulation; }
-        .sound-toggle:active { transform: scale(0.95); }
-        .sound-toggle.muted { background: linear-gradient(145deg, #f44336, #d32f2f); }
-        .sound-status {
-            color: white;
-            font-size: 11px;
-            font-weight: bold;
-            margin-top: 1px;
-            text-shadow: 0 1px 3px rgba(0,0,0,0.18);
-            background: rgba(0,0,0,0.06);
-            border-radius: 6px;
-            padding: 0px 3px;
-        }
-        @media (max-width: 600px) {
-            .sound-control {
-                top: 2vw;
-                right: 2vw;
-            }
-            .sound-status {
-                font-size: 10px;
-                margin-top: 2px;
-            }
-        }
-        .title { text-align: center; color: #FFD700; margin-bottom: 8px; font-size: 18px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); font-weight: bold; }
-        .created-by { text-align: center; color: #fff; font-size: 13px; margin-top: 0px; margin-bottom: 8px; opacity: 0.85; font-weight: 400; }
-        .chords-section { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 10px; padding: 6px; margin-bottom: 4px; max-width: 300px; margin-left: 8px; margin-right: auto; }
-        .instrument-selector { position: relative; margin-bottom: 8px; }
-        .instrument-current { background: linear-gradient(145deg, #9C27B0, #7B1FA2); color: white; border: none; border-radius: 6px; padding: 8px 12px;
-            font-size: 13px; font-weight: bold; cursor: pointer; width: 100%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
-        .instrument-current:active { transform: scale(0.98); }
-        .instrument-dropdown {
-            position: absolute; top: 100%; left: 0; right: 0; background: rgba(0,0,0,0.9); backdrop-filter: blur(10px);
-            border-radius: 6px; margin-top: 4px; max-height: 0; overflow: hidden; transition: max-height 0.3s ease; z-index: 100; box-shadow: 0 4px 8px rgba(0,0,0,0.5);
-        }
-        .instrument-dropdown.open {
-            max-height: 45vh;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        .instrument-option { background: transparent; color: white; border: none; padding: 10px 12px; font-size: 13px; font-weight: bold; cursor: pointer; width: 100%; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); transition: background 0.2s; }
-        .instrument-option:hover, .instrument-option:active { background: rgba(156, 39, 176, 0.3); }
-        .instrument-option:last-child { border-bottom: none; }
-        .tone-selector { display: flex; gap: 5px; margin-bottom: 8px; overflow-x: auto; justify-content: flex-start; padding: 0 4px; }
-        .tone-btn { background: rgba(255,255,255,0.2); color: white; border: 2px solid rgba(255,255,255,0.3); border-radius: 6px; padding: 5px 8px; font-size: 11px; font-weight: bold; cursor: pointer; white-space: nowrap; transition: all 0.2s; }
-        .tone-btn.active { background: linear-gradient(145deg, #FF9800, #F57C00); border-color: #FF9800; }
-        .tone-btn:active { transform: scale(0.95); }
-        .chords-title { color: white; font-size: 12px; margin-bottom: 4px; text-align: center; }
-        .chords-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 4px; }
-        .chord-btn { background: linear-gradient(145deg, #4CAF50, #45a049); color: white; border: 2px solid rgba(255,255,255,0.4); border-radius: 5px; padding: 6px 2px; font-size: 10px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.3); transition: all 0.1s; touch-action: manipulation; }
-        .chord-btn:active { transform: scale(0.95); box-shadow: 0 2px 3px rgba(0,0,0,0.3); background: linear-gradient(145deg, #66BB6A, #5CB860); }
-        .piano-container { background: rgba(0,0,0,0.3); backdrop-filter: blur(10px); border-radius: 10px; padding: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow-x: auto; overflow-y: hidden; width: 100%; max-width: 800px; }
-        .piano { position: relative; height: 140px; width: 1050px; margin: 0 auto; }
-        .white-key { position: absolute; width: 35px; height: 140px; background: linear-gradient(to bottom, #ffffff 0%, #f0f0f0 100%); border: 2px solid #222; border-radius: 0 0 4px 4px; cursor: pointer; user-select: none; touch-action: manipulation; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 4px; font-size: 8px; color: #666; font-weight: bold; transition: all 0.05s; }
-        .white-key.active { background: linear-gradient(145deg, #b3e5fc 0%, #4fc3f7 100%); color: #0277bd; }
-        .white-key.chord-active {
-            background: linear-gradient(to bottom, #FFE680 0%, #FFD966 100%);
-            box-shadow: inset 0 1px 3px rgba(255, 200, 0, 0.4);
-        }
-        .white-key:active { background: linear-gradient(145deg, #b3e5fc 0%, #4fc3f7 100%); color: #0277bd; }
-        .black-key { position: absolute; width: 24px; height: 85px; background: linear-gradient(to bottom, #444 0%, #000 100%); border: 1px solid #000; border-radius: 0 0 3px 3px; cursor: pointer; user-select: none; touch-action: manipulation; z-index: 10; color: white; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 3px; font-size: 7px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.5); transition: all 0.05s; }
-        .black-key.active { background: linear-gradient(145deg, #b3e5fc 0%, #4fc3f7 100%); color: #0277bd; }
-        .black-key.chord-active {
-            background: linear-gradient(to bottom, #FFE680 0%, #FFD966 100%);
-            box-shadow: inset 0 1px 3px rgba(255, 200, 0, 0.4);
-            color: #444;
-        }
-        .black-key:active { background: linear-gradient(145deg, #b3e5fc 0%, #4fc3f7 100%); color: #0277bd; }
-        .info { text-align: center; color: white; margin-top: 8px; font-size: 11px; line-height: 1.4; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Đàn Piano Nhạc Cụ Thật - Ghi Âm WAV</title>
+  <style>
+    body { font-family: Arial,sans-serif; background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); margin:0; padding:0; min-height:100vh; }
+    .container { width:100%; max-width:800px; margin:auto; position:relative; padding-top:32px;}
+    .recorder-controls { text-align:center; margin-bottom:16px;}
+    .recorder-controls button, .recorder-controls a {
+      padding:8px 16px; border:none; border-radius:5px; margin:2px; font-weight:bold; font-size:16px; text-decoration:none;
+      cursor: pointer; transition: all 0.3s;
+    }
+    #recordBtn { background:#d32f2f; color:white;}
+    #stopBtn { background:#ff9800; color:white;}
+    #playBtn { background:#388e3c; color:white;}
+    #downloadBtn { background:#1976d2; color:white; display:inline-block;}
+    .recorder-controls button:disabled, .recorder-controls a:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+    .recording-status {
+      display: none;
+      color: #ff1744;
+      font-weight: bold;
+      font-size: 18px;
+      margin: 8px 0;
+      animation: blink 1s infinite;
+    }
+    .recording-status.active {
+      display: block;
+    }
+    .recording-timer {
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+      margin: 4px 0;
+    }
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0.4; }
+    }
+    h1 {color:#FFD700;text-align:center; text-shadow:2px 2px 4px rgba(0,0,0,0.5); margin-bottom:0;}
+    .info {text-align:center;color:#fff;opacity:0.9; margin-bottom:20px;}
+    audio {display:block; margin:10px auto;}
+    .sound-control {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 100;
+      gap: 2px;
+    }
+    .sound-toggle { background: linear-gradient(145deg, #4CAF50, #45a049); color: white; border: none; border-radius: 50%;
+        width: 50px; height: 50px; font-size: 24px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        transition: all 0.2s; display: flex; align-items: center; justify-content: center; touch-action: manipulation; }
+    .sound-toggle:active { transform: scale(0.95); }
+    .sound-toggle.muted { background: linear-gradient(145deg, #f44336, #d32f2f); }
+    .sound-status {
+        color: white;
+        font-size: 11px;
+        font-weight: bold;
+        margin-top: 1px;
+        text-shadow: 0 1px 3px rgba(0,0,0,0.18);
+        background: rgba(0,0,0,0.06);
+        border-radius: 6px;
+        padding: 0px 3px;
+    }
+    @media (max-width: 600px) {
+      .sound-control {
+          top: 2vw;
+          right: 2vw;
+      }
+      .sound-status {
+          font-size: 10px;
+          margin-top: 2px;
+      }
+    }
+    .title { text-align: center; color: #FFD700; margin-bottom: 8px; font-size: 18px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); font-weight: bold; }
+    .created-by { text-align: center; color: #fff; font-size: 13px; margin-top: 0px; margin-bottom: 8px; opacity: 0.85; font-weight: 400; }
+    .chords-section { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 10px; padding: 6px; margin-bottom: 4px; max-width: 300px; margin-left: 8px; margin-right: auto; }
+    .instrument-selector { position: relative; margin-bottom: 8px; }
+    .instrument-current { background: linear-gradient(145deg, #9C27B0, #7B1FA2); color: white; border: none; border-radius: 6px; padding: 8px 12px;
+        font-size: 13px; font-weight: bold; cursor: pointer; width: 100%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+    .instrument-current:active { transform: scale(0.98); }
+    .instrument-dropdown {
+        position: absolute; top: 100%; left: 0; right: 0; background: rgba(0,0,0,0.9); backdrop-filter: blur(10px);
+        border-radius: 6px; margin-top: 4px; max-height: 0; overflow: hidden; transition: max-height 0.3s ease; z-index: 100; box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+    }
+    .instrument-dropdown.open {
+        max-height: 45vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .instrument-option { background: transparent; color: white; border: none; padding: 10px 12px; font-size: 13px; font-weight: bold; cursor: pointer; width: 100%; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); transition: background 0.2s; }
+    .instrument-option:hover, .instrument-option:active { background: rgba(156, 39, 176, 0.3); }
+    .instrument-option:last-child { border-bottom: none; }
+    .tone-selector { display: flex; gap: 5px; margin-bottom: 8px; overflow-x: auto; justify-content: flex-start; padding: 0 4px; }
+    .tone-btn { background: rgba(255,255,255,0.2); color: white; border: 2px solid rgba(255,255,255,0.3); border-radius: 6px; padding: 5px 8px; font-size: 11px; font-weight: bold; cursor: pointer; white-space: nowrap; transition: all 0.2s; }
+    .tone-btn.active { background: linear-gradient(145deg, #FF9800, #F57C00); border-color: #FF9800; }
+    .tone-btn:active { transform: scale(0.95); }
+    .chords-title { color: white; font-size: 12px; margin-bottom: 4px; text-align: center; }
+    .chords-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 4px; }
+    .chord-btn { background: linear-gradient(145deg, #4CAF50, #45a049); color: white; border: 2px solid rgba(255,255,255,0.4); border-radius: 5px; padding: 6px 2px; font-size: 10px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.3); transition: all 0.1s; touch-action: manipulation; }
+    .chord-btn:active { transform: scale(0.95); box-shadow: 0 2px 3px rgba(0,0,0,0.3); background: linear-gradient(145deg, #66BB6A, #5CB860); }
+    .piano-container { background: rgba(0,0,0,0.3); backdrop-filter: blur(10px); border-radius: 10px; padding: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow-x: auto; overflow-y: hidden; width: 100%; max-width: 800px; }
+    .piano { position: relative; height: 140px; width: 1050px; margin: 0 auto; }
+    .white-key { position: absolute; width: 35px; height: 140px; background: linear-gradient(to bottom, #ffffff 0%, #f0f0f0 100%); border: 2px solid #222; border-radius: 0 0 4px 4px; cursor: pointer; user-select: none; touch-action: manipulation; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 4px; font-size: 8px; color: #666; font-weight: bold; transition: all 0.05s; }
+    .white-key.active { background: linear-gradient(145deg, #b3e5fc 0%, #4fc3f7 100%); color: #0277bd; }
+    .white-key.chord-active {
+        background: linear-gradient(to bottom, #FFE680 0%, #FFD966 100%);
+        box-shadow: inset 0 1px 3px rgba(255, 200, 0, 0.4);
+    }
+    .white-key:active { background: linear-gradient(145deg, #b3e5fc 0%, #4fc3f7 100%); color: #0277bd; }
+    .black-key { position: absolute; width: 24px; height: 85px; background: linear-gradient(to bottom, #444 0%, #000 100%); border: 1px solid #000; border-radius: 0 0 3px 3px; cursor: pointer; user-select: none; touch-action: manipulation; z-index: 10; color: white; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 3px; font-size: 7px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.5); transition: all 0.05s; }
+    .black-key.active { background: linear-gradient(145deg, #b3e5fc 0%, #4fc3f7 100%); color: #0277bd; }
+    .black-key.chord-active {
+        background: linear-gradient(to bottom, #FFE680 0%, #FFD966 100%);
+        box-shadow: inset 0 1px 3px rgba(255, 200, 0, 0.4);
+        color: #444;
+    }
+    .black-key:active { background: linear-gradient(145deg, #b3e5fc 0%, #4fc3f7 100%); color: #0277bd; }
+    .info2 { text-align: center; color: white; margin-top: 8px; font-size: 11px; line-height: 1.4; }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="sound-control">
-            <button class="sound-toggle muted" id="soundToggle">
-                <span id="soundIcon">🔇</span>
-            </button>
-            <span class="sound-status" id="soundStatus">Tắt âm</span>
-        </div>
-        <h1 class="title" style="margin: 0;">🎹 Đàn Piano Nhạc Cụ Thật</h1>
-        <div class="created-by">Created by Minh Nhựt</div>
-        <div class="chords-section">
-            <div class="chords-title">🎸 Nhạc Cụ</div>
-            <div class="instrument-selector">
-                <button class="instrument-current" id="instrumentCurrent">
-                    <span id="instrumentName">🎹 Piano Thật</span>
-                    <span id="dropdownArrow">▼</span>
-                </button>
-                <div class="instrument-dropdown" id="instrumentDropdown">
-                    <button class="instrument-option" data-instrument="piano">🎹 Piano Thật</button>
-                    <button class="instrument-option" data-instrument="guitar">🎸 Guitar Classic</button>
-                    <button class="instrument-option" data-instrument="epiano">🎹 Electric Piano</button>
-                    <button class="instrument-option" data-instrument="trumpet">🎺 Trumpet</button>
-                    <button class="instrument-option" data-instrument="sax">🎷 Alto Saxophone</button>
-                    <button class="instrument-option" data-instrument="flute">🎶 Flute</button>
-                    <button class="instrument-option" data-instrument="violin">🎻 Violin</button>
-                    <button class="instrument-option" data-instrument="cello">🎻 Cello</button>
-                    <button class="instrument-option" data-instrument="clarinet">🎼 Clarinet</button>
-                    <button class="instrument-option" data-instrument="xylophone">🎼 Xylophone</button>
-                    <button class="instrument-option" data-instrument="bass">🎸 Bass</button>
-                    <button class="instrument-option" data-instrument="drum">🥁 Drum Kit</button>
-                </div>
-            </div>
-            <div class="tone-selector" id="toneSelector"></div>
-            <div class="chords-title" id="currentTone">Hợp Âm - Tone Dm</div>
-            <div class="chords-grid" id="chordsGrid"></div>
-        </div>
-        <div class="piano-container">
-            <div class="piano" id="piano"></div>
-        </div>
-        <div class="info">
-            Bấm hợp âm phía trên • Bấm phím đàn để chơi giai điệu
-        </div>
+  <div class="container">
+    <div class="sound-control">
+      <button class="sound-toggle muted" id="soundToggle">
+        <span id="soundIcon">🔇</span>
+      </button>
+      <span class="sound-status" id="soundStatus">Tắt âm</span>
     </div>
-    <script>
-        // ==== SAMPLE INSTRUMENT URL CONFIG ====
-        const sampleInstruments = {
-            piano: {
-                name: '🎹 Piano Thật',
-                folder: 'acoustic_grand_piano-mp3'
-            },
-            guitar: {
-                name: '🎸 Guitar Classic',
-                folder: 'acoustic_guitar_nylon-mp3'
-            },
-            epiano: {
-                name: '🎹 Electric Piano',
-                folder: 'electric_piano_1-mp3'
-            },
-            trumpet: {
-                name: '🎺 Trumpet',
-                folder: 'trumpet-mp3'
-            },
-            sax: {
-                name: '🎷 Alto Saxophone',
-                folder: 'alto_sax-mp3'
-            },
-            flute: {
-                name: '🎶 Flute',
-                folder: 'flute-mp3'
-            },
-            violin: {
-                name: '🎻 Violin',
-                folder: 'violin-mp3'
-            },
-            cello: {
-                name: '🎻 Cello',
-                folder: 'cello-mp3'
-            },
-            clarinet: {
-                name: '🎼 Clarinet',
-                folder: 'clarinet-mp3'
-            },
-            xylophone: {
-                name: '🎼 Xylophone',
-                folder: 'xylophone-mp3'
-            },
-            bass: {
-                name: '🎸 Bass',
-                folder: 'electric_bass_finger-mp3'
-            },
-            drum: {
-                name: '🥁 Drum Kit',
-                folder: 'standard_kit-mp3',
-                isDrum: true
-            }
-        };
-        const sampleBaseURL = "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/";
+    <h1 class="title" style="margin: 0;">🎹 Đàn Piano Nhạc Cụ Thật</h1>
+    <div class="created-by">Created by Minh Nhựt</div>
+    <div class="info">Chơi đàn, ghi âm, nghe lại và tải về file .wav!</div>
+    <div class="recorder-controls">
+      <div class="recording-status" id="recordingStatus">🔴 ĐANG GHI ÂM</div>
+      <div class="recording-timer" id="recordingTimer" style="display:none;">00:00</div>
+      <button id="recordBtn">🎙️ Ghi âm</button>
+      <button id="stopBtn" disabled>⏹️ Dừng</button>
+      <button id="playBtn" disabled>▶️ Nghe lại</button>
+      <a id="downloadBtn" href="#" download="danpiano_record.wav" style="display:none;">⬇️ Tải ghi âm (.wav)</a>
+    </div>
+    <audio id="audioPlayback" controls style="display:none;"></audio>
+    <div class="chords-section">
+      <div class="chords-title">🎸 Nhạc Cụ</div>
+      <div class="instrument-selector">
+          <button class="instrument-current" id="instrumentCurrent">
+              <span id="instrumentName">🎹 Piano Thật</span>
+              <span id="dropdownArrow">▼</span>
+          </button>
+          <div class="instrument-dropdown" id="instrumentDropdown">
+              <button class="instrument-option" data-instrument="piano">🎹 Piano Thật</button>
+              <button class="instrument-option" data-instrument="guitar">🎸 Guitar Classic</button>
+              <button class="instrument-option" data-instrument="epiano">🎹 Electric Piano</button>
+              <button class="instrument-option" data-instrument="trumpet">🎺 Trumpet</button>
+              <button class="instrument-option" data-instrument="sax">🎷 Alto Saxophone</button>
+              <button class="instrument-option" data-instrument="flute">🎶 Flute</button>
+              <button class="instrument-option" data-instrument="violin">🎻 Violin</button>
+              <button class="instrument-option" data-instrument="cello">🎻 Cello</button>
+              <button class="instrument-option" data-instrument="clarinet">🎼 Clarinet</button>
+              <button class="instrument-option" data-instrument="xylophone">🎼 Xylophone</button>
+              <button class="instrument-option" data-instrument="bass">🎸 Bass</button>
+              <button class="instrument-option" data-instrument="drum">🥁 Drum Kit</button>
+          </div>
+      </div>
+      <div class="tone-selector" id="toneSelector"></div>
+      <div class="chords-title" id="currentTone">Hợp Âm - Tone Dm</div>
+      <div class="chords-grid" id="chordsGrid"></div>
+    </div>
+    <div class="piano-container">
+      <div class="piano" id="piano"></div>
+    </div>
+    <div class="info2">
+      Bấm hợp âm phía trên • Bấm phím đàn để chơi giai điệu
+    </div>
+  </div>
+  <script>
+    const sampleInstruments = {
+        piano: { name: '🎹 Piano Thật', folder: 'acoustic_grand_piano-mp3' },
+        guitar: { name: '🎸 Guitar Classic', folder: 'acoustic_guitar_nylon-mp3' },
+        epiano: { name: '🎹 Electric Piano', folder: 'electric_piano_1-mp3' },
+        trumpet: { name: '🎺 Trumpet', folder: 'trumpet-mp3' },
+        sax: { name: '🎷 Alto Saxophone', folder: 'alto_sax-mp3' },
+        flute: { name: '🎶 Flute', folder: 'flute-mp3' },
+        violin: { name: '🎻 Violin', folder: 'violin-mp3' },
+        cello: { name: '🎻 Cello', folder: 'cello-mp3' },
+        clarinet: { name: '🎼 Clarinet', folder: 'clarinet-mp3' },
+        xylophone: { name: '🎼 Xylophone', folder: 'xylophone-mp3' },
+        bass: { name: '🎸 Bass', folder: 'electric_bass_finger-mp3' },
+        drum: { name: '🥁 Drum Kit', folder: 'standard_kit-mp3', isDrum: true }
+    };
+    const sampleBaseURL = "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/";
 
-        // ==== NOTE FREQUENCIES ====
-        const notes = {
-            'C3': 130.81, 'C#3': 138.59, 'D3': 146.83, 'D#3': 155.56,
-            'E3': 164.81, 'F3': 174.61, 'F#3': 185.00, 'G3': 196.00,
-            'G#3': 207.65, 'A3': 220.00, 'A#3': 233.08, 'B3': 246.94,
-            'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13,
-            'E4': 329.63, 'F4': 349.23, 'F#4': 369.99, 'G4': 392.00,
-            'G#4': 415.30, 'A4': 440.00, 'A#4': 466.16, 'B4': 493.88,
-            'C5': 523.25, 'C#5': 554.37, 'D5': 587.33, 'D#5': 622.25, 
-            'E5': 659.25, 'F5': 698.46, 'F#5': 739.99, 'G5': 783.99,
-            'G#5': 830.61, 'A5': 880.00, 'A#5': 932.33, 'B5': 987.77,
-            'C6': 1046.50
-        };
+    const notes = {
+        'C3': 130.81, 'C#3': 138.59, 'D3': 146.83, 'D#3': 155.56,
+        'E3': 164.81, 'F3': 174.61, 'F#3': 185.00, 'G3': 196.00,
+        'G#3': 207.65, 'A3': 220.00, 'A#3': 233.08, 'B3': 246.94,
+        'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13,
+        'E4': 329.63, 'F4': 349.23, 'F#4': 369.99, 'G4': 392.00,
+        'G#4': 415.30, 'A4': 440.00, 'A#4': 466.16, 'B4': 493.88,
+        'C5': 523.25, 'C#5': 554.37, 'D5': 587.33, 'D#5': 622.25, 
+        'E5': 659.25, 'F5': 698.46, 'F#5': 739.99, 'G5': 783.99,
+        'G#5': 830.61, 'A5': 880.00, 'A#5': 932.33, 'B5': 987.77,
+        'C6': 1046.50
+    };
 
-        // ==== STATE ====
-        let audioContext = null;
-        let isMuted = true;
-        let currentTone = 'Dm';
-        let currentInstrument = 'piano'; // default is piano
+    let audioContext = null;
+    let audioDest = null;
+    let isMuted = true;
+    let currentTone = 'Dm';
+    let currentInstrument = 'piano';
+    let sampleBuffers = {};
+    for(const key in sampleInstruments) sampleBuffers[key] = {};
 
-        // ==== NOTE PRELOAD (FOR SAMPLE INSTRUMENTS) ====
-        let sampleBuffers = {};
-        for(const key in sampleInstruments) sampleBuffers[key] = {};
-
-        function initAudioContext() {
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioContext.state === 'suspended') {
-                audioContext.resume();
-            }
+    function initAudioContext() {
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
         }
-
-        // ==== PRELOAD ALL NOTE SAMPLES ====
-        async function preloadSamples(instrument) {
-            let notesList = Object.keys(notes);
-            let folder = sampleInstruments[instrument].folder;
-            let promises = notesList.map(note => {
-                let url = `${sampleBaseURL}${folder}/${note}.mp3`;
-                return fetch(url)
-                    .then(res => res.ok ? res.arrayBuffer() : null)
-                    .then(buf => buf ? audioContext.decodeAudioData(buf) : null)
-                    .then(audioBuf => {
-                        if(audioBuf) sampleBuffers[instrument][note] = audioBuf;
-                    })
-                    .catch(() => {});
-            });
-            await Promise.all(promises);
+        if (!audioDest) {
+            audioDest = audioContext.createMediaStreamDestination();
         }
-
-        // ==== ONLY PRELOAD ONCE ====
-        let hasPreload = {};
-        for(const key in sampleInstruments) hasPreload[key] = false;
-
-        async function ensureSamples(instrument) {
-            initAudioContext();
-            if (!hasPreload[instrument]) {
-                await preloadSamples(instrument);
-                hasPreload[instrument] = true;
-            }
+        if (audioContext.state === 'suspended') {
+            audioContext.resume();
         }
+    }
 
-        window.addEventListener('load', async () => {
-            initAudioContext();
-            document.getElementById('instrumentName').textContent = sampleInstruments[currentInstrument].name;
-            await ensureSamples('piano');
+    async function preloadSamples(instrument) {
+        let notesList = Object.keys(notes);
+        let folder = sampleInstruments[instrument].folder;
+        let promises = notesList.map(note => {
+            let url = `${sampleBaseURL}${folder}/${note}.mp3`;
+            return fetch(url)
+                .then(res => res.ok ? res.arrayBuffer() : null)
+                .then(buf => buf ? audioContext.decodeAudioData(buf) : null)
+                .then(audioBuf => {
+                    if(audioBuf) sampleBuffers[instrument][note] = audioBuf;
+                })
+                .catch(() => {});
         });
+        await Promise.all(promises);
+    }
 
-        const soundToggle = document.getElementById('soundToggle');
-        const soundIcon = document.getElementById('soundIcon');
-        const soundStatus = document.getElementById('soundStatus');
+    let hasPreload = {};
+    for(const key in sampleInstruments) hasPreload[key] = false;
 
-        soundToggle.addEventListener('click', () => {
-            initAudioContext();
-            isMuted = !isMuted;
-            soundToggle.classList.toggle('muted', isMuted);
-            soundIcon.textContent = isMuted ? '🔇' : '🔊';
-            soundStatus.textContent = isMuted ? 'Tắt âm' : 'Bật âm';
+    async function ensureSamples(instrument) {
+        initAudioContext();
+        if (!hasPreload[instrument]) {
+            await preloadSamples(instrument);
+            hasPreload[instrument] = true;
+        }
+    }
+
+    window.addEventListener('load', async () => {
+        initAudioContext();
+        document.getElementById('instrumentName').textContent = sampleInstruments[currentInstrument].name;
+        for (const inst in sampleInstruments) {
+            ensureSamples(inst);
+        }
+    });
+
+    const soundToggle = document.getElementById('soundToggle');
+    const soundIcon = document.getElementById('soundIcon');
+    const soundStatus = document.getElementById('soundStatus');
+
+    soundToggle.addEventListener('click', () => {
+        initAudioContext();
+        isMuted = !isMuted;
+        soundToggle.classList.toggle('muted', isMuted);
+        soundIcon.textContent = isMuted ? '🔇' : '🔊';
+        soundStatus.textContent = isMuted ? 'Tắt âm' : 'Bật âm';
+    });
+
+    const piano = document.getElementById('piano');
+    const whiteKeysData = [
+        {note: 'C3', left: 0}, {note: 'D3', left: 35}, {note: 'E3', left: 70},
+        {note: 'F3', left: 105}, {note: 'G3', left: 140}, {note: 'A3', left: 175},
+        {note: 'B3', left: 210}, {note: 'C4', left: 245}, {note: 'D4', left: 280},
+        {note: 'E4', left: 315}, {note: 'F4', left: 350}, {note: 'G4', left: 385},
+        {note: 'A4', left: 420}, {note: 'B4', left: 455}, {note: 'C5', left: 490},
+        {note: 'D5', left: 525}, {note: 'E5', left: 560}, {note: 'F5', left: 595},
+        {note: 'G5', left: 630}, {note: 'A5', left: 665}, {note: 'B5', left: 700},
+        {note: 'C6', left: 735}
+    ];
+    const blackKeysData = [
+        {note: 'C#3', left: 24}, {note: 'D#3', left: 59},
+        {note: 'F#3', left: 129}, {note: 'G#3', left: 164}, {note: 'A#3', left: 199},
+        {note: 'C#4', left: 269}, {note: 'D#4', left: 304},
+        {note: 'F#4', left: 374}, {note: 'G#4', left: 409}, {note: 'A#4', left: 444},
+        {note: 'C#5', left: 514}, {note: 'D#5', left: 549},
+        {note: 'F#5', left: 619}, {note: 'G#5', left: 654}, {note: 'A#5', left: 689}
+    ];
+    function createKey(isBlack, data) {
+        const key = document.createElement('div');
+        key.className = isBlack ? 'black-key' : 'white-key';
+        key.dataset.note = data.note;
+        key.textContent = data.note;
+        key.style.left = data.left + 'px';
+        const playKeyNote = () => playNote(data.note, key);
+        key.addEventListener('mousedown', () => { key.classList.add('active'); playKeyNote(); });
+        key.addEventListener('touchstart', (e) => { e.preventDefault(); key.classList.add('active'); playKeyNote(); });
+        key.addEventListener('mouseup', () => { key.classList.remove('active'); });
+        key.addEventListener('mouseleave', () => { key.classList.remove('active'); });
+        key.addEventListener('touchend', () => { key.classList.remove('active'); });
+        return key;
+    }
+    whiteKeysData.forEach(data => piano.appendChild(createKey(false, data)));
+    blackKeysData.forEach(data => piano.appendChild(createKey(true, data)));
+
+    async function playSample(instrument, note, volume = 1.0, duration = 1200) {
+        if (!audioContext || isMuted) return;
+        let sampleBuffer = sampleBuffers[instrument][note];
+        let rootNote = note;
+        if (!sampleBuffer) {
+            const whiteNotes = Object.keys(sampleBuffers[instrument]).filter(n=>sampleBuffers[instrument][n]);
+            let minDiff = 99999, best = null;
+            for(const wn of whiteNotes) {
+                let diff = Math.abs(notes[wn]-notes[note]);
+                if(diff < minDiff) {minDiff=diff; best=wn;}
+            }
+            if (!best) return;
+            sampleBuffer = sampleBuffers[instrument][best];
+            rootNote = best;
+        }
+        const src = audioContext.createBufferSource();
+        src.buffer = sampleBuffer;
+        let semitone = Math.log2(notes[note] / notes[rootNote]) * 12;
+        src.playbackRate.value = Math.pow(2, semitone / 12);
+        const gainNode = audioContext.createGain();
+        gainNode.gain.value = volume;
+        gainNode.connect(audioContext.destination);
+        if (audioDest) gainNode.connect(audioDest);
+        src.connect(gainNode);
+        src.start();
+        src.stop(audioContext.currentTime + Math.min(duration/1000, src.buffer.duration / src.playbackRate.value));
+    }
+
+    async function playNote(note, keyElement, isChord = false) {
+        if (isMuted) return;
+        initAudioContext();
+        if (keyElement) {
+            const activeClass = isChord ? 'chord-active' : 'active';
+            keyElement.classList.add(activeClass);
+            let duration = 1200;
+            setTimeout(() => { keyElement.classList.remove(activeClass); }, duration);
+        }
+        if (sampleInstruments[currentInstrument].isDrum) {
+            const drumMap = {
+                "C3": "C3", "D3": "D3", "E3": "E3", "F3": "F3", "G3": "G3", "A3": "A3", "B3": "B3",
+                "C4": "C4", "D4": "D4", "E4": "E4", "F4": "F4", "G4": "G4", "A4": "A4", "B4": "B4",
+                "F#3": "F#3", "A#3": "A#3", "D#3": "D#3"
+            };
+            let drumNote = drumMap[note] || "C3";
+            await ensureSamples(currentInstrument);
+            playSample(currentInstrument, drumNote, 1.0, 700);
+        } else {
+            await ensureSamples(currentInstrument);
+            playSample(currentInstrument, note, 1.0, 1200);
+        }
+    }
+
+    const chords = {
+        'C': ['C3', 'E3', 'G3'], 'C#': ['C#3', 'F3', 'G#3'], 'Cm': ['C3', 'D#3', 'G3'],
+        'C#m': ['C#3', 'E3', 'G#3'], 'C7': ['C3', 'E3', 'G3', 'A#3'], 'C#7': ['C#3', 'F3', 'G#3', 'B3'],
+        'D': ['D3', 'F#3', 'A3'], 'D#': ['D#3', 'G3', 'A#3'], 'Dm': ['D3', 'F3', 'A3'],
+        'D#m': ['D#3', 'F#3', 'A#3'], 'D7': ['D3', 'F#3', 'A3', 'C4'], 'E': ['E3', 'G#3', 'B3'],
+        'Eb': ['D#3', 'G3', 'A#3'], 'Em': ['E3', 'G3', 'B3'], 'Em7': ['E3', 'G3', 'B3', 'D4'],
+        'E7': ['E3', 'G#3', 'B3', 'D4'], 'F': ['F3', 'A3', 'C4'], 'F#': ['F#3', 'A#3', 'C#4'],
+        'Fm': ['F3', 'G#3', 'C4'], 'F#m': ['F#3', 'A3', 'C#4'], 'F#7': ['F#3', 'A#3', 'C#4', 'E4'],
+        'G': ['G3', 'B3', 'D4'], 'G#': ['G#3', 'C4', 'D#4'], 'Gm': ['G3', 'A#3', 'D4'],
+        'G#m': ['G#3', 'B3', 'D#4'], 'G7': ['G3', 'B3', 'D4', 'F4'], 'A': ['A3', 'C#4', 'E4'],
+        'A#': ['A#3', 'D4', 'F4'], 'Am': ['A3', 'C4', 'E4'], 'A7': ['A3', 'C#4', 'E4', 'G3'],
+        'Am7': ['A3', 'C4', 'E4', 'G4'], 'B': ['B3', 'D#4', 'F#4'], 'Bm': ['B3', 'D4', 'F#4'],
+        'Bb': ['A#3', 'D4', 'F3'], 'D#m7': ['D#3', 'F#3', 'A#3', 'C#4'], 'Dm7': ['D3', 'F3', 'A3', 'C4'],
+        'F#m7': ['F#3', 'A3', 'C#4', 'E4'], 'Db': ['C#3', 'F3', 'G#3']
+    };
+
+    const toneChords = {
+        'Dm': ['Dm', 'Gm', 'Bb', 'C', 'F', 'G', 'A7', 'Am', 'E'],
+        'Bm': ['Bm', 'Em', 'D#', 'F#', 'B', 'C#', 'F#7', 'F#m', 'G#'],
+        'Am': ['Am', 'Dm', 'G', 'Bb', 'Eb', 'A', 'D7', 'Em', 'B'],
+        'D#m': ['D#m', 'G#m', 'B', 'C#', 'F#', 'G#', 'C#7', 'C#m', 'F#7'],
+        'Gm': ['Gm', 'Cm', 'Bb', 'Db', 'F', 'G', 'D7', 'D', 'A'],
+        'Em': ['Em', 'Am', 'G', 'Bb', 'D', 'E', 'A7', 'Bm', 'F#']
+    };
+
+    async function playChord(chordName) {
+        const chordNotes = chords[chordName];
+        if (!chordNotes) {
+            alert(`Hợp âm ${chordName} chưa được hỗ trợ!`);
+            return;
+        }
+        for (const note of chordNotes) {
+            const keyElement = document.querySelector(`[data-note="${note}"]`);
+            playNote(note, keyElement, true);
+        }
+    }
+
+    function showChordOnKeys(chordName) {
+        document.querySelectorAll('.white-key,.black-key').forEach(key => {
+            key.classList.remove('chord-active');
         });
+        const chordNotes = chords[chordName];
+        if (!chordNotes) return;
+        chordNotes.forEach(note => {
+            const keyElement = document.querySelector(`[data-note="${note}"]`);
+            if (keyElement) keyElement.classList.add('chord-active');
+        });
+    }
 
-        // ==== PIANO KEYS ====
-        const piano = document.getElementById('piano');
-        const whiteKeysData = [
-            {note: 'C3', left: 0}, {note: 'D3', left: 35}, {note: 'E3', left: 70},
-            {note: 'F3', left: 105}, {note: 'G3', left: 140}, {note: 'A3', left: 175},
-            {note: 'B3', left: 210}, {note: 'C4', left: 245}, {note: 'D4', left: 280},
-            {note: 'E4', left: 315}, {note: 'F4', left: 350}, {note: 'G4', left: 385},
-            {note: 'A4', left: 420}, {note: 'B4', left: 455}, {note: 'C5', left: 490},
-            {note: 'D5', left: 525}, {note: 'E5', left: 560}, {note: 'F5', left: 595},
-            {note: 'G5', left: 630}, {note: 'A5', left: 665}, {note: 'B5', left: 700},
-            {note: 'C6', left: 735}
-        ];
-        const blackKeysData = [
-            {note: 'C#3', left: 24}, {note: 'D#3', left: 59},
-            {note: 'F#3', left: 129}, {note: 'G#3', left: 164}, {note: 'A#3', left: 199},
-            {note: 'C#4', left: 269}, {note: 'D#4', left: 304},
-            {note: 'F#4', left: 374}, {note: 'G#4', left: 409}, {note: 'A#4', left: 444},
-            {note: 'C#5', left: 514}, {note: 'D#5', left: 549},
-            {note: 'F#5', left: 619}, {note: 'G#5', left: 654}, {note: 'A#5', left: 689}
-        ];
-        function createKey(isBlack, data) {
-            const key = document.createElement('div');
-            key.className = isBlack ? 'black-key' : 'white-key';
-            key.dataset.note = data.note;
-            key.textContent = data.note;
-            key.style.left = data.left + 'px';
-            const playKeyNote = () => playNote(data.note, key);
-            key.addEventListener('mousedown', () => { key.classList.add('active'); playKeyNote(); });
-            key.addEventListener('touchstart', (e) => { e.preventDefault(); key.classList.add('active'); playKeyNote(); });
-            key.addEventListener('mouseup', () => { key.classList.remove('active'); });
-            key.addEventListener('mouseleave', () => { key.classList.remove('active'); });
-            key.addEventListener('touchend', () => { key.classList.remove('active'); });
-            return key;
-        }
-        whiteKeysData.forEach(data => piano.appendChild(createKey(false, data)));
-        blackKeysData.forEach(data => piano.appendChild(createKey(true, data)));
-
-        // ==== SAMPLE PLAYBACK (Pitch shift for black keys if missing sample) ====
-        async function playSample(instrument, note, volume = 1.0, duration = 1200) {
-            if (!audioContext || isMuted) return;
-            let sampleBuffer = sampleBuffers[instrument][note];
-            let rootNote = note;
-            if (!sampleBuffer) {
-                const whiteNotes = Object.keys(sampleBuffers[instrument]).filter(n=>sampleBuffers[instrument][n]);
-                let minDiff = 99999, best = null;
-                for(const wn of whiteNotes) {
-                    let diff = Math.abs(notes[wn]-notes[note]);
-                    if(diff < minDiff) {minDiff=diff; best=wn;}
-                }
-                if (!best) return;
-                sampleBuffer = sampleBuffers[instrument][best];
-                rootNote = best;
-            }
-            const src = audioContext.createBufferSource();
-            src.buffer = sampleBuffer;
-            let semitone = Math.log2(notes[note] / notes[rootNote]) * 12;
-            src.playbackRate.value = Math.pow(2, semitone / 12);
-            const gainNode = audioContext.createGain();
-            gainNode.gain.value = volume;
-            src.connect(gainNode).connect(audioContext.destination);
-            src.start();
-            src.stop(audioContext.currentTime + Math.min(duration/1000, src.buffer.duration / src.playbackRate.value));
-        }
-
-        // ==== PLAY NOTE ====
-        async function playNote(note, keyElement, isChord = false) {
-            if (isMuted) return;
-            initAudioContext();
-            if (keyElement) {
-                const activeClass = isChord ? 'chord-active' : 'active';
-                keyElement.classList.add(activeClass);
-                let duration = 1200;
-                setTimeout(() => { keyElement.classList.remove(activeClass); }, duration);
-            }
-            if (sampleInstruments[currentInstrument].isDrum) {
-                let drumMap = {
-                    "C3":"C3","D3":"D3","E3":"E3","F3":"F3","G3":"G3","A3":"A3","B3":"B3",
-                    "C4":"C4","D4":"D4","E4":"E4","F4":"F4","G4":"G4","A4":"A4","B4":"B4"
-                };
-                let drumNote = drumMap[note] || "C3";
-                await ensureSamples(currentInstrument);
-                playSample(currentInstrument, drumNote, 1.0, 700);
-            } else {
-                await ensureSamples(currentInstrument);
-                playSample(currentInstrument, note, 1.0, 1200);
-            }
-        }
-
-        // ==== CHORDS DATA ====
-        const chords = {
-            'C': ['C3', 'E3', 'G3'],
-            'C#': ['C#3', 'F3', 'G#3'],
-            'Cm': ['C3', 'D#3', 'G3'],
-            'C#m': ['C#3', 'E3', 'G#3'],
-            'C7': ['C3', 'E3', 'G3', 'A#3'],
-            'C#7': ['C#3', 'F3', 'G#3', 'B3'],
-            'D': ['D3', 'F#3', 'A3'],
-            'D#': ['D#3', 'G3', 'A#3'],
-            'Dm': ['D3', 'F3', 'A3'],
-            'D#m': ['D#3', 'F#3', 'A#3'],
-            'D7': ['D3', 'F#3', 'A3', 'C4'],
-            'E': ['E3', 'G#3', 'B3'],
-            'Eb': ['D#3', 'G3', 'A#3'],
-            'Em': ['E3', 'G3', 'B3'],
-            'Em7': ['E3', 'G3', 'B3', 'D4'],
-            'E7': ['E3', 'G#3', 'B3', 'D4'],
-            'F': ['F3', 'A3', 'C4'],
-            'F#': ['F#3', 'A#3', 'C#4'],
-            'Fm': ['F3', 'G#3', 'C4'],
-            'F#m': ['F#3', 'A3', 'C#4'],
-            'F#7': ['F#3', 'A#3', 'C#4', 'E4'],
-            'G': ['G3', 'B3', 'D4'],
-            'G#': ['G#3', 'C4', 'D#4'],
-            'Gm': ['G3', 'A#3', 'D4'],
-            'G#m': ['G#3', 'B3', 'D#4'],
-            'G7': ['G3', 'B3', 'D4', 'F4'],
-            'A': ['A3', 'C#4', 'E4'],
-            'A#': ['A#3', 'D4', 'F4'],
-            'Am': ['A3', 'C4', 'E4'],
-            'A7': ['A3', 'C#4', 'E4', 'G3'],
-            'Am7': ['A3', 'C4', 'E4', 'G4'],
-            'B': ['B3', 'D#4', 'F#4'],
-            'Bm': ['B3', 'D4', 'F#4'],
-            'Bb': ['A#3', 'D4', 'F3'],
-            'D#m7': ['D#3', 'F#3', 'A#3', 'C#4'],
-            'Dm7': ['D3', 'F3', 'A3', 'C4'],
-            'F#m7': ['F#3', 'A3', 'C#4', 'E4'],
-            'G#m': ['G#3', 'B3', 'D#4'],
-            'Db': ['C#3', 'F3', 'G#3'],
-        };
-
-        // ==== TONE CHORDS ====
-        const toneChords = {
-            'Dm': ['Dm', 'Gm', 'Bb', 'C', 'F', 'G', 'A7', 'Am', 'E'],
-            'Bm': ['Bm', 'Em', 'D#', 'F#', 'B', 'C#', 'F#7', 'F#m', 'G#'],
-            'Am': ['Am', 'Dm', 'G', 'Bb', 'Eb', 'A', 'D7', 'Em', 'B'],
-            'D#m': ['D#m', 'G#m', 'B', 'C#', 'F#', 'G#', 'C#7', 'C#m', 'F#7'],
-            'Gm': ['Gm', 'Cm', 'Bb', 'Db', 'F', 'G', 'D7', 'D', 'A'],
-            'Em': ['Em', 'Am', 'G', 'Bb', 'D', 'E', 'A7', 'Bm', 'F#']
-        };
-
-        // ==== PLAY CHORD ====
-        async function playChord(chordName) {
-            const chordNotes = chords[chordName];
-            if (!chordNotes) {
-                alert(`Hợp âm ${chordName} chưa được hỗ trợ!`);
-                return;
-            }
-            for (const note of chordNotes) {
-                const keyElement = document.querySelector(`[data-note="${note}"]`);
-                playNote(note, keyElement, true);
-            }
-        }
-
-        function showChordOnKeys(chordName) {
-            document.querySelectorAll('.white-key,.black-key').forEach(key => {
-                key.classList.remove('chord-active');
+    function renderToneSelector() {
+        const selector = document.getElementById('toneSelector');
+        selector.innerHTML = '';
+        Object.keys(toneChords).forEach(tone => {
+            const btn = document.createElement('button');
+            btn.className = 'tone-btn';
+            btn.dataset.tone = tone;
+            btn.textContent = tone;
+            if (tone === currentTone) btn.classList.add('active');
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tone-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentTone = tone;
+                renderChords(tone);
             });
-            const chordNotes = chords[chordName];
-            if (!chordNotes) return;
-            chordNotes.forEach(note => {
-                const keyElement = document.querySelector(`[data-note="${note}"]`);
-                if (keyElement) keyElement.classList.add('chord-active');
-            });
-        }
+            selector.appendChild(btn);
+        });
+    }
 
-        function renderToneSelector() {
-            const selector = document.getElementById('toneSelector');
-            selector.innerHTML = '';
-            Object.keys(toneChords).forEach(tone => {
+    function renderChords(tone) {
+        const grid = document.getElementById('chordsGrid');
+        const title = document.getElementById('currentTone');
+        grid.innerHTML = '';
+        title.textContent = `Hợp Âm - Tone ${tone}`;
+        if (toneChords[tone]) {
+            toneChords[tone].forEach(chordName => {
                 const btn = document.createElement('button');
-                btn.className = 'tone-btn';
-                btn.dataset.tone = tone;
-                btn.textContent = tone;
-                if (tone === currentTone) btn.classList.add('active');
-                btn.addEventListener('click', () => {
-                    document.querySelectorAll('.tone-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    currentTone = tone;
-                    renderChords(tone);
-                });
-                selector.appendChild(btn);
+                btn.className = 'chord-btn';
+                btn.dataset.chord = chordName;
+                btn.textContent = chordName;
+                btn.addEventListener('touchstart', (e) => { e.preventDefault(); playChord(chordName); showChordOnKeys(chordName); });
+                btn.addEventListener('click', () => { playChord(chordName); showChordOnKeys(chordName); });
+                grid.appendChild(btn);
             });
         }
+    }
 
-        function renderChords(tone) {
-            const grid = document.getElementById('chordsGrid');
-            const title = document.getElementById('currentTone');
-            grid.innerHTML = '';
-            title.textContent = `Hợp Âm - Tone ${tone}`;
-            if (toneChords[tone]) {
-                toneChords[tone].forEach(chordName => {
-                    const btn = document.createElement('button');
-                    btn.className = 'chord-btn';
-                    btn.dataset.chord = chordName;
-                    btn.textContent = chordName;
-                    btn.addEventListener('touchstart', (e) => { e.preventDefault(); playChord(chordName); showChordOnKeys(chordName); });
-                    btn.addEventListener('click', () => { playChord(chordName); showChordOnKeys(chordName); });
-                    grid.appendChild(btn);
-                });
-            }
+    const instrumentCurrent = document.getElementById('instrumentCurrent');
+    const instrumentDropdown = document.getElementById('instrumentDropdown');
+    const instrumentName = document.getElementById('instrumentName');
+    const dropdownArrow = document.getElementById('dropdownArrow');
+    
+    instrumentCurrent.addEventListener('click', () => {
+        instrumentDropdown.classList.toggle('open');
+        dropdownArrow.textContent = instrumentDropdown.classList.contains('open') ? '▲' : '▼';
+    });
+    document.querySelectorAll('.instrument-option').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            currentInstrument = btn.dataset.instrument;
+            instrumentName.textContent = sampleInstruments[currentInstrument].name;
+            await ensureSamples(currentInstrument);
+            instrumentDropdown.classList.remove('open');
+            dropdownArrow.textContent = '▼';
+        });
+    });
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.instrument-selector')) {
+            instrumentDropdown.classList.remove('open');
+            dropdownArrow.textContent = '▼';
         }
+    });
 
-        // ==== INSTRUMENT SELECTOR ====
-        const instrumentCurrent = document.getElementById('instrumentCurrent');
-        const instrumentDropdown = document.getElementById('instrumentDropdown');
-        const instrumentName = document.getElementById('instrumentName');
-        const dropdownArrow = document.getElementById('dropdownArrow');
+    renderToneSelector();
+    renderChords(currentTone);
+    showChordOnKeys(toneChords[currentTone][0]);
+
+    let mediaRecorder, audioChunks = [], wavUrl = null;
+    let recordingStartTime = 0;
+    let recordingTimer = null;
+
+    function updateRecordingTimer() {
+      const elapsed = Date.now() - recordingStartTime;
+      const seconds = Math.floor(elapsed / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      document.getElementById('recordingTimer').textContent = 
+        `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    document.getElementById("recordBtn").onclick = function() {
+      initAudioContext();
+      audioChunks = [];
+      mediaRecorder = new MediaRecorder(audioDest.stream);
+      mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+      mediaRecorder.onstop = exportWav;
+      mediaRecorder.start();
+      
+      recordingStartTime = Date.now();
+      document.getElementById('recordingTimer').style.display = 'block';
+      document.getElementById('recordingTimer').textContent = '00:00';
+      recordingTimer = setInterval(updateRecordingTimer, 100);
+      
+      document.getElementById('recordingStatus').classList.add('active');
+      
+      this.disabled = true;
+      document.getElementById("stopBtn").disabled = false;
+      document.getElementById("playBtn").disabled = true;
+      document.getElementById("audioPlayback").style.display = "none";
+      document.getElementById("downloadBtn").style.display = "none";
+    };
+
+    document.getElementById("stopBtn").onclick = function() {
+      if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
         
-        instrumentCurrent.addEventListener('click', () => {
-            instrumentDropdown.classList.toggle('open');
-            dropdownArrow.textContent = instrumentDropdown.classList.contains('open') ? '▲' : '▼';
-        });
-        document.querySelectorAll('.instrument-option').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                currentInstrument = btn.dataset.instrument;
-                instrumentName.textContent = sampleInstruments[currentInstrument].name;
-                await ensureSamples(currentInstrument);
-                instrumentDropdown.classList.remove('open');
-                dropdownArrow.textContent = '▼';
-            });
-        });
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.instrument-selector')) {
-                instrumentDropdown.classList.remove('open');
-                dropdownArrow.textContent = '▼';
-            }
-        });
+        if (recordingTimer) {
+          clearInterval(recordingTimer);
+          recordingTimer = null;
+        }
+        
+        document.getElementById('recordingStatus').classList.remove('active');
+        document.getElementById('recordingTimer').style.display = 'none';
+        
+        this.disabled = true;
+        document.getElementById("recordBtn").disabled = false;
+      }
+    };
 
-        renderToneSelector();
-        renderChords(currentTone);
-        showChordOnKeys(toneChords[currentTone][0]);
-    </script>
+    document.getElementById("playBtn").onclick = function() {
+      if (wavUrl) {
+        let audio = document.getElementById("audioPlayback");
+        audio.currentTime = 0;
+        audio.play();
+      }
+    };
+
+    function exportWav() {
+      let superBuffer = new Blob(audioChunks, { type: "audio/webm" });
+      let fileReader = new FileReader();
+      fileReader.onload = function() {
+        audioContext.decodeAudioData(this.result).then(function(buffer) {
+          let wav = encodeWAV(buffer);
+          wavUrl = URL.createObjectURL(wav);
+          let audio = document.getElementById("audioPlayback");
+          audio.src = wavUrl;
+          audio.style.display = "block";
+          document.getElementById("playBtn").disabled = false;
+          let downloadBtn = document.getElementById("downloadBtn");
+          downloadBtn.href = wavUrl;
+          downloadBtn.style.display = "inline-block";
+        });
+      };
+      fileReader.readAsArrayBuffer(superBuffer);
+    }
+
+    function encodeWAV(buffer) {
+      let numOfChan = buffer.numberOfChannels,
+          length = buffer.length * numOfChan * 2 + 44,
+          bufferOut = new ArrayBuffer(length),
+          view = new DataView(bufferOut),
+          channels = [], i, sample,
+          offset = 0,
+          pos = 0;
+
+      setUint32(0x46464952);
+      setUint32(length - 8);
+      setUint32(0x45564157);
+
+      setUint32(0x20746d66);
+      setUint32(16);
+      setUint16(1);
+      setUint16(numOfChan);
+      setUint32(buffer.sampleRate);
+      setUint32(buffer.sampleRate * 2 * numOfChan);
+      setUint16(numOfChan * 2);
+      setUint16(16);
+
+      setUint32(0x61746164);
+      setUint32(length - pos - 4);
+
+      for(i=0; i<buffer.numberOfChannels; i++)
+        channels.push(buffer.getChannelData(i));
+      let sampleLen = buffer.length;
+      while(pos < length) {
+        for(i=0; i<numOfChan; i++) {
+          sample = Math.max(-1, Math.min(1, channels[i][offset]));
+          sample = (0.5 + sample * 32767) | 0;
+          view.setInt16(pos, sample, true);
+          pos += 2;
+        }
+        offset++;
+        if (offset >= sampleLen) break;
+      }
+      function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
+      function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
+      return new Blob([bufferOut], { type: "audio/wav" });
+    }
+  </script>
 </body>
 </html>
