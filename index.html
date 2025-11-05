@@ -176,7 +176,6 @@
               <button class="instrument-option" data-instrument="synth_brass">🎺 Synth Brass 2</button>
               <button class="instrument-option" data-instrument="trumpet">🎺 Trumpet</button>
               <button class="instrument-option" data-instrument="violin">🎻 Violin</button>
-              <button class="instrument-option" data-instrument="drum">🥁 Drum (9 kiểu tiếng)</button>
           </div>
       </div>
       <div class="tone-selector" id="toneSelector"></div>
@@ -208,22 +207,7 @@
         soprano_sax: { name: '🎷 Soprano Saxophone', folder: 'soprano_sax-mp3' },
         synth_brass: { name: '🎺 Synth Brass 2', folder: 'synth_brass_2-mp3' },
         trumpet: { name: '🎺 Trumpet', folder: 'trumpet-mp3' },
-        violin: { name: '🎻 Violin', folder: 'violin-mp3' },
-        drum: { 
-            name: '🥁 Drum (9 kiểu tiếng)', 
-            folder: null,
-            drumSamples: [
-                "https://raw.githubusercontent.com/nhut990/files/refs/heads/main/tieng/Crash-Kick.mp3",
-                "https://raw.githubusercontent.com/nhut990/files/refs/heads/main/tieng/Crash.mp3",
-                "https://raw.githubusercontent.com/nhut990/files/refs/heads/main/tieng/Crash2.mp3",
-                "https://raw.githubusercontent.com/nhut990/files/refs/heads/main/tieng/Kich%20Bass.mp3",
-                "https://raw.githubusercontent.com/nhut990/files/refs/heads/main/tieng/Ride.mp3",
-                "https://raw.githubusercontent.com/nhut990/files/refs/heads/main/tieng/Tom1.mp3",
-                "https://raw.githubusercontent.com/nhut990/files/refs/heads/main/tieng/Tom2.mp3",
-                "https://raw.githubusercontent.com/nhut990/files/refs/heads/main/tieng/Tom3.mp3",
-                "https://raw.githubusercontent.com/nhut990/files/refs/heads/main/tieng/Tom4.mp3"
-            ]
-        }
+        violin: { name: '🎻 Violin', folder: 'violin-mp3' }
     };
     
     const sampleBaseURL = "https://raw.githubusercontent.com/Nhut11790/nhut11790.github.io/main/tieng/";
@@ -248,13 +232,8 @@
     let isAudioActivated = false; // ✅ Trạng thái kích hoạt âm thanh
     let currentTone = 'Dm';
     let currentInstrument = 'piano';
-
-    // Sample buffers cho các nhạc cụ khác. Drum sẽ preload riêng.
     let sampleBuffers = {};
     for(const key in sampleInstruments) sampleBuffers[key] = {};
-
-    // Drum preloader
-    let drumBuffers = [];
 
     function initAudioContext() {
         if (!audioContext) {
@@ -277,6 +256,7 @@
             'G#': 'Ab',
             'A#': 'Bb'
         };
+        
         for (let sharp in sharpToFlat) {
             if (note.startsWith(sharp)) {
                 return note.replace(sharp, sharpToFlat[sharp]);
@@ -285,21 +265,29 @@
         return note;
     }
 
-    // ✅ PRELOAD SAMPLES (NHẠC CỤ KHÁC DRUM)
+    // ✅ PRELOAD SAMPLES - ĐÃ FIX CHUYỂN # SANG b
     async function preloadSamples(instrument) {
-        if(instrument === "drum") return; // Drum sẽ load riêng
         let notesList = Object.keys(notes);
         let folder = sampleInstruments[instrument].folder;
         let successCount = 0;
+        
+        console.log(`⏳ Đang tải ${instrument} từ: ${sampleBaseURL}${folder}/`);
         document.getElementById('loadingStatus').textContent = `⏳ Đang tải ${sampleInstruments[instrument].name}...`;
         
         let promises = notesList.map(note => {
+            // ✅ FIX: Chuyển C#3 → Db3, D#3 → Eb3...
             let flatNote = convertSharpToFlat(note);
             let fileName = flatNote + '.mp3';
             let url = `${sampleBaseURL}${folder}/${fileName}`;
+            
+            console.log(`Đang tải: ${note} → ${flatNote} | URL: ${url}`);
+            
             return fetch(url)
                 .then(res => {
-                    if (!res.ok) return null;
+                    if (!res.ok) {
+                        console.warn(`❌ Không tải được: ${url}`);
+                        return null;
+                    }
                     return res.arrayBuffer();
                 })
                 .then(buf => buf ? audioContext.decodeAudioData(buf) : null)
@@ -311,11 +299,17 @@
                             `⏳ Đang tải ${sampleInstruments[instrument].name}... (${successCount}/${notesList.length})`;
                     }
                 })
-                .catch(()=>{});
+                .catch(err => {
+                    console.warn(`❌ Lỗi tải ${note} cho ${instrument}:`, err);
+                });
         });
+        
         await Promise.all(promises);
+        console.log(`✅ ${instrument}: Đã tải ${successCount}/${notesList.length} nốt nhạc`);
+        
         if (successCount === 0) {
             document.getElementById('loadingStatus').textContent = `❌ Không thể tải nhạc cụ ${sampleInstruments[instrument].name}`;
+            alert(`⚠️ Không thể tải nhạc cụ ${sampleInstruments[instrument].name}. Vui lòng kiểm tra:\n1. Kết nối internet\n2. Cấu trúc thư mục GitHub\n3. Tên file trên GitHub phải đúng (C#3.mp3, D#3.mp3...)`);
         } else {
             document.getElementById('loadingStatus').textContent = `✅ Đã tải xong ${sampleInstruments[instrument].name} (${successCount} nốt)`;
             setTimeout(() => {
@@ -324,59 +318,19 @@
         }
     }
 
-    // Drum preload
-    async function preloadDrumSamples() {
-        drumBuffers = [];
-        let urls = sampleInstruments.drum.drumSamples;
-        document.getElementById('loadingStatus').textContent = `⏳ Đang tải Drum...`;
-        let loaded = 0;
-        let promises = urls.map((url, idx) => {
-            return fetch(url)
-                .then(res => {
-                    if (!res.ok) return null;
-                    return res.arrayBuffer();
-                })
-                .then(buf => buf ? audioContext.decodeAudioData(buf) : null)
-                .then(audioBuf => {
-                    if (audioBuf) {
-                        drumBuffers[idx] = audioBuf;
-                        loaded++;
-                        document.getElementById('loadingStatus').textContent = `⏳ Đang tải Drum... (${loaded}/${urls.length})`;
-                    } else {
-                        drumBuffers[idx] = null;
-                    }
-                })
-                .catch(()=>{ drumBuffers[idx]=null; });
-        });
-        await Promise.all(promises);
-        document.getElementById('loadingStatus').textContent = `✅ Đã tải xong Drum (${loaded}/${urls.length})`;
-        setTimeout(() => {
-            document.getElementById('loadingStatus').style.display = 'none';
-        }, 1800);
-    }
-
     let hasPreload = {};
     for(const key in sampleInstruments) hasPreload[key] = false;
 
     async function ensureSamples(instrument) {
         initAudioContext();
-        if(instrument === "drum") {
-            if(!hasPreload.drum) {
-                document.getElementById('loadingStatus').style.display = 'block';
-                await preloadDrumSamples();
-                hasPreload.drum = true;
-            }
-        }
-        else {
-            if (!hasPreload[instrument]) {
-                document.getElementById('loadingStatus').style.display = 'block';
-                await preloadSamples(instrument);
-                hasPreload[instrument] = true;
-            }
+        if (!hasPreload[instrument]) {
+            document.getElementById('loadingStatus').style.display = 'block';
+            await preloadSamples(instrument);
+            hasPreload[instrument] = true;
         }
     }
 
-    // Load piano mặc định khi vào trang
+    // ✅ TỰ ĐỘNG TẢI PIANO KHI LOAD TRANG
     window.addEventListener('load', async () => {
         initAudioContext();
         document.getElementById('instrumentName').textContent = sampleInstruments[currentInstrument].name;
@@ -387,15 +341,22 @@
     const soundToggle = document.getElementById('soundToggle');
     const soundIcon = document.getElementById('soundIcon');
     const soundStatus = document.getElementById('soundStatus');
+
     soundToggle.addEventListener('click', async () => {
-        if (isAudioActivated) return;
+        if (isAudioActivated) return; // ✅ Đã kích hoạt rồi thì không làm gì
+        
         soundToggle.disabled = true;
         soundIcon.textContent = '⏳';
         soundStatus.textContent = 'Đang kích hoạt...';
+        
         try {
             initAudioContext();
+            
+            // ✅ CÁCH 1: Dùng Audio element để phát âm thanh test
             const testAudio = new Audio('https://raw.githubusercontent.com/nhut990/files/refs/heads/main/tieng/E3_active_audio.mp3');
             testAudio.volume = 0.3;
+            
+            // Chờ audio load và phát
             await new Promise((resolve, reject) => {
                 testAudio.addEventListener('canplaythrough', () => {
                     testAudio.play()
@@ -408,11 +369,18 @@
                         })
                         .catch(reject);
                 }, { once: true });
+                
                 testAudio.addEventListener('error', reject, { once: true });
                 testAudio.load();
+                
+                // Timeout sau 5 giây
                 setTimeout(() => reject(new Error('Timeout')), 5000);
             });
+            
+            // Resume AudioContext cho Web Audio API
             await audioContext.resume();
+            
+            // ✅ THÀNH CÔNG - KÍCH HOẠT ÂM THANH
             isAudioActivated = true;
             isMuted = false;
             soundToggle.classList.remove('muted');
@@ -420,11 +388,15 @@
             soundToggle.style.cursor = 'not-allowed';
             soundIcon.textContent = '🔊';
             soundStatus.textContent = '✔️ Âm thanh bật';
+            
+            console.log('✅ Âm thanh đã được kích hoạt thành công!');
+            
         } catch (error) {
+            console.error('❌ Lỗi kích hoạt âm thanh:', error);
             soundToggle.disabled = false;
             soundIcon.textContent = '🔇';
             soundStatus.textContent = 'Thử lại';
-            alert('⚠️ Không thể kích hoạt âm thanh.\n\nLỗi: ' + error.message);
+            alert('⚠️ Không thể kích hoạt âm thanh.\n\nLỗi: ' + error.message + '\n\nVui lòng:\n1. Kiểm tra kết nối internet\n2. Thử lại lần nữa\n3. Nếu vẫn lỗi, thử refresh trang');
         }
     });
 
@@ -448,13 +420,14 @@
         {note: 'C#5', left: 514}, {note: 'D#5', left: 549},
         {note: 'F#5', left: 619}, {note: 'G#5', left: 654}, {note: 'A#5', left: 689}
     ];
-    function createKey(isBlack, data, idx) {
+    
+    function createKey(isBlack, data) {
         const key = document.createElement('div');
         key.className = isBlack ? 'black-key' : 'white-key';
         key.dataset.note = data.note;
         key.textContent = data.note;
         key.style.left = data.left + 'px';
-        const playKeyNote = () => playNote(data.note, key, false, idx);
+        const playKeyNote = () => playNote(data.note, key);
         key.addEventListener('mousedown', () => { key.classList.add('active'); playKeyNote(); });
         key.addEventListener('touchstart', (e) => { e.preventDefault(); key.classList.add('active'); playKeyNote(); });
         key.addEventListener('mouseup', () => { key.classList.remove('active'); });
@@ -462,79 +435,71 @@
         key.addEventListener('touchend', () => { key.classList.remove('active'); });
         return key;
     }
-    // Index để biết key số mấy cho drum (chia đều lặp)
-    whiteKeysData.forEach((data, idx) => piano.appendChild(createKey(false, data, idx)));
-    blackKeysData.forEach((data, idx) => piano.appendChild(createKey(true, data, whiteKeysData.length + idx)));
+    whiteKeysData.forEach(data => piano.appendChild(createKey(false, data)));
+    blackKeysData.forEach(data => piano.appendChild(createKey(true, data)));
 
-    // ✅ PHÁT ÂM THANH SAMPLE (NHẠC CỤ KHÁC DRUM)
+    // ✅ PHÁT ÂM THANH SAMPLE
     async function playSample(instrument, note, volume = 1.0, duration = 1200) {
         if (!audioContext || !isAudioActivated) return;
-        if (instrument === "drum") return; // Drum xử lý riêng
+        
         let sampleBuffer = sampleBuffers[instrument][note];
         let rootNote = note;
+        
         if (!sampleBuffer) {
             const availableNotes = Object.keys(sampleBuffers[instrument]).filter(n => sampleBuffers[instrument][n]);
-            if (availableNotes.length === 0) return;
+            
+            if (availableNotes.length === 0) {
+                console.warn(`❌ Không có sample nào cho ${instrument}`);
+                return;
+            }
+            
             let minDiff = 99999, bestNote = null;
             for(const availNote of availableNotes) {
                 let diff = Math.abs(notes[availNote] - notes[note]);
-                if(diff < minDiff) { minDiff = diff; bestNote = availNote; }
+                if(diff < minDiff) {
+                    minDiff = diff;
+                    bestNote = availNote;
+                }
             }
+            
             if (!bestNote) return;
             sampleBuffer = sampleBuffers[instrument][bestNote];
             rootNote = bestNote;
         }
+        
         const src = audioContext.createBufferSource();
         src.buffer = sampleBuffer;
+        
         let semitone = Math.log2(notes[note] / notes[rootNote]) * 12;
         src.playbackRate.value = Math.pow(2, semitone / 12);
+        
         const gainNode = audioContext.createGain();
         gainNode.gain.value = volume;
         gainNode.connect(audioContext.destination);
         if (audioDest) gainNode.connect(audioDest);
+        
         src.connect(gainNode);
         src.start();
         src.stop(audioContext.currentTime + Math.min(duration/1000, src.buffer.duration / src.playbackRate.value));
     }
 
-    // ✅ PHÁT DRUM (chia đều 9 tiếng lên phím, lặp lại cho toàn bộ phím)
-    async function playDrum(idx, volume = 1.0) {
-        if (!audioContext || !isAudioActivated) return;
-        await ensureSamples("drum");
-        if (drumBuffers.length === 0) return;
-        let soundIdx = idx % drumBuffers.length;
-        let buf = drumBuffers[soundIdx];
-        if (!buf) return;
-        const src = audioContext.createBufferSource();
-        src.buffer = buf;
-        const gainNode = audioContext.createGain();
-        gainNode.gain.value = volume;
-        gainNode.connect(audioContext.destination);
-        if (audioDest) gainNode.connect(audioDest);
-        src.connect(gainNode);
-        src.start();
-        src.stop(audioContext.currentTime + Math.min(2.0, buf.duration)); // mỗi drum tới 2s max
-    }
-
-    // ✅ PHÁT NỐT NHẠC/trống
-    async function playNote(note, keyElement, isChord = false, keyIdx = 0) {
+    // ✅ PHÁT NỐT NHẠC
+    async function playNote(note, keyElement, isChord = false) {
         if (!isAudioActivated) {
             alert('⚠️ Vui lòng ấn nút "🔇 Tắt âm" để kích hoạt âm thanh trước!');
             return;
         }
         initAudioContext();
+        
         if (keyElement) {
             const activeClass = isChord ? 'chord-active' : 'active';
             keyElement.classList.add(activeClass);
             let duration = 1200;
             setTimeout(() => { keyElement.classList.remove(activeClass); }, duration);
         }
+        
         await ensureSamples(currentInstrument);
-        if (currentInstrument === "drum") {
-            playDrum(keyIdx, 1.0);
-        } else {
-            playSample(currentInstrument, note, 1.0, 1200);
-        }
+        playSample(currentInstrument, note, 1.0, 1200);
     }
 
     // ✅ ĐỊNH NGHĨA HỢP ÂM
@@ -560,9 +525,11 @@
 
     // ✅ PHÁT HỢP ÂM
     async function playChord(chordName) {
-        if(currentInstrument === "drum") return; // Drum không chạy hợp âm
         const chordNotes = chords[chordName];
-        if (!chordNotes) return;
+        if (!chordNotes) {
+            alert(`Hợp âm ${chordName} chưa được hỗ trợ!`);
+            return;
+        }
         for (const note of chordNotes) {
             const keyElement = document.querySelector(`[data-note="${note}"]`);
             playNote(note, keyElement, true);
@@ -571,7 +538,6 @@
 
     // ✅ HIỂN THỊ HỢP ÂM TRÊN PHÍM ĐÀN
     function showChordOnKeys(chordName) {
-        if(currentInstrument === "drum") return; // Drum không hiển thị hợp âm
         document.querySelectorAll('.white-key,.black-key').forEach(key => {
             key.classList.remove('chord-active');
         });
@@ -607,18 +573,23 @@
     function renderChords(tone) {
         const grid = document.getElementById('chordsGrid');
         const titleEl = document.getElementById('currentTone');
+        
         grid.innerHTML = '';
         titleEl.querySelector('span').textContent = `Hợp Âm - Tone ${tone}`;
+        
         const chordsToUse = toneChords[tone];
+        
         if (chordsToUse) {
             chordsToUse.forEach((chordName) => {
                 const btn = document.createElement('button');
                 btn.className = 'chord-btn';
                 btn.dataset.chord = chordName;
                 btn.textContent = chordName;
+                
                 btn.addEventListener('click', (function(name) {
                     return function() { playChord(name); showChordOnKeys(name); };
                 })(chordName));
+                
                 btn.addEventListener('touchstart', (function(name) {
                     return function(e) { 
                         e.preventDefault(); 
@@ -626,6 +597,7 @@
                         showChordOnKeys(name); 
                     };
                 })(chordName));
+                
                 grid.appendChild(btn);
             });
         }
@@ -636,10 +608,12 @@
     const instrumentDropdown = document.getElementById('instrumentDropdown');
     const instrumentName = document.getElementById('instrumentName');
     const dropdownArrow = document.getElementById('dropdownArrow');
+    
     instrumentCurrent.addEventListener('click', () => {
         instrumentDropdown.classList.toggle('open');
         dropdownArrow.textContent = instrumentDropdown.classList.contains('open') ? '▲' : '▼';
     });
+    
     document.querySelectorAll('.instrument-option').forEach(btn => {
         btn.addEventListener('click', async () => {
             currentInstrument = btn.dataset.instrument;
@@ -647,21 +621,9 @@
             await ensureSamples(currentInstrument);
             instrumentDropdown.classList.remove('open');
             dropdownArrow.textContent = '▼';
-            // nếu chọn Drum thì ẩn hợp âm, tone
-            if(currentInstrument==="drum") {
-                document.getElementById('toneSelector').style.display = 'none';
-                document.getElementById('chordsGrid').style.display = 'none';
-                document.getElementById('currentTone').style.display = 'none';
-                showChordOnKeys(null);
-            } else {
-                document.getElementById('toneSelector').style.display = '';
-                document.getElementById('chordsGrid').style.display = '';
-                document.getElementById('currentTone').style.display = '';
-                if (toneChords[currentTone]) showChordOnKeys(toneChords[currentTone][0]);
-            }
         });
     });
-
+    
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.instrument-selector')) {
             instrumentDropdown.classList.remove('open');
@@ -679,6 +641,7 @@
     let mediaRecorder, audioChunks = [], wavUrl = null;
     let recordingStartTime = 0;
     let recordingTimer = null;
+
     function updateRecordingTimer() {
       const elapsed = Date.now() - recordingStartTime;
       const seconds = Math.floor(elapsed / 1000);
@@ -687,6 +650,7 @@
       document.getElementById('recordingTimer').textContent = 
         `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     }
+
     document.getElementById("recordBtn").onclick = function() {
       initAudioContext();
       audioChunks = [];
@@ -694,30 +658,38 @@
       mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
       mediaRecorder.onstop = exportWav;
       mediaRecorder.start();
+      
       recordingStartTime = Date.now();
       document.getElementById('recordingTimer').style.display = 'block';
       document.getElementById('recordingTimer').textContent = '00:00';
       recordingTimer = setInterval(updateRecordingTimer, 100);
+      
       document.getElementById('recordingStatus').classList.add('active');
+      
       this.disabled = true;
       document.getElementById("stopBtn").disabled = false;
       document.getElementById("playBtn").disabled = true;
       document.getElementById("audioPlayback").style.display = "none";
       document.getElementById("downloadBtn").style.display = "none";
     };
+
     document.getElementById("stopBtn").onclick = function() {
       if (mediaRecorder && mediaRecorder.state !== "inactive") {
         mediaRecorder.stop();
+        
         if (recordingTimer) {
           clearInterval(recordingTimer);
           recordingTimer = null;
         }
+        
         document.getElementById('recordingStatus').classList.remove('active');
         document.getElementById('recordingTimer').style.display = 'none';
+        
         this.disabled = true;
         document.getElementById("recordBtn").disabled = false;
       }
     };
+
     document.getElementById("playBtn").onclick = function() {
       if (wavUrl) {
         let audio = document.getElementById("audioPlayback");
@@ -725,6 +697,7 @@
         audio.play();
       }
     };
+
     function exportWav() {
       let superBuffer = new Blob(audioChunks, { type: "audio/webm" });
       let fileReader = new FileReader();
@@ -743,6 +716,7 @@
       };
       fileReader.readAsArrayBuffer(superBuffer);
     }
+
     function encodeWAV(buffer) {
       let numOfChan = buffer.numberOfChannels,
           length = buffer.length * numOfChan * 2 + 44,
@@ -751,9 +725,11 @@
           channels = [], i, sample,
           offset = 0,
           pos = 0;
+
       setUint32(0x46464952);
       setUint32(length - 8);
       setUint32(0x45564157);
+
       setUint32(0x20746d66);
       setUint32(16);
       setUint16(1);
@@ -762,8 +738,10 @@
       setUint32(buffer.sampleRate * 2 * numOfChan);
       setUint16(numOfChan * 2);
       setUint16(16);
+
       setUint32(0x61746164);
       setUint32(length - pos - 4);
+
       for(i=0; i<buffer.numberOfChannels; i++)
         channels.push(buffer.getChannelData(i));
       let sampleLen = buffer.length;
