@@ -24,26 +24,27 @@
       margin: 5px auto 8px auto;
       display: flex; justify-content: center; gap: 10px; align-items: center;
     }
-    .rec-btn, .play-btn, .clear-btn {
+    .rec-btn, .play-btn, .download-btn, .clear-btn {
       background: linear-gradient(137deg,#2ac7ec,#1594bb);
       color: #fff; border: none; border-radius: 8px; padding: 5px 10px;
       font-size: 14px; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.11);
       cursor: pointer; transition: all 0.13s;
       display: flex; align-items: center; gap:3px; min-width: 72px; min-height: 28px; opacity:1;
     }
-    .rec-btn.active { background: linear-gradient(137deg,#f94444,#b30000); color:#fff; }
+    .rec-btn { background: linear-gradient(137deg,#2ac7ec,#1594bb);}
+    .rec-btn.active { background: linear-gradient(137deg,#FFD700,#ffeb90); color:#1e7e99;}
     .play-btn.active { background: linear-gradient(137deg,#43a047,#2ac7ec); color:#fff;}
-    .rec-btn:active,.play-btn:active,.clear-btn:active { transform: scale(0.97);}
+    .rec-btn:active,.play-btn:active,.download-btn:active,.clear-btn:active { transform: scale(0.97);}
     .clear-btn { background: linear-gradient(125deg,#2ac7ec,#a81be6); color:#fff;}
+    .download-btn { background: linear-gradient(137deg,#2ac7ec,#7B1FA2); color:#fff;}
 
-    .play-btn[disabled], .clear-btn[disabled]{
+    .play-btn[disabled], .download-btn[disabled], .clear-btn[disabled]{
       opacity: 0.49;
       cursor: not-allowed;
     }
     .record-status { font-size:14px;font-weight: bold; color:#fff;margin-left:10px; text-shadow:0 2px 7px rgba(22,96,215,0.13);}
     .record-status.active { color: #FFD700;}
     .play-remaining { margin-left:8px; font-size:13px; color:#90eeff; font-weight:bold;}
-    .record-timer { margin-left:8px; font-size:14px; color:#f94444; font-weight: bold;}
 
     /* Instrument selector giữ nguyên giao diện */
     .instrument-selector { max-width: 220px; margin: 18px auto 13px auto; position: relative; }
@@ -125,9 +126,9 @@
     <div class="record-controls">
       <button class="rec-btn" id="recordBtn"><span id="recIcon">⏺️</span> Ghi âm</button>
       <button class="play-btn" id="playBtn" disabled><span id="playIcon">▶️</span> Phát lại</button>
+      <button class="download-btn" id="downloadBtn" disabled><span id="downIcon">💾</span> Tải về</button>
       <button class="clear-btn" id="clearBtn" disabled><span id="clearIcon">🗑️</span> Xóa</button>
       <span class="record-status" id="recordStatus">Chưa ghi âm</span>
-      <span class="record-timer" id="recordTimer"></span>
       <span class="play-remaining" id="playRemaining"></span>
     </div>
     <div class="instrument-selector">
@@ -207,9 +208,6 @@
     let playbackEndTime = 0;
     let playbackTimer = null;
 
-    let recordInterval = null;
-    const recordTimer = document.getElementById('recordTimer');
-
     // ========= AUDIO ==========
     function initAudioContext() {
       if (!audioContext) { audioContext = new (window.AudioContext || window.webkitAudioContext)(); }
@@ -258,6 +256,7 @@
         hasPreload[instrument] = true;
       }
     }
+
     // ========== THÔNG BÁO ===========
     function showAlert(msg) {
       const alertBox = document.getElementById("alert");
@@ -367,7 +366,7 @@
           ts: now - recordStart,
           instrument: currentInstrument
         });
-        updateRecordStatus(); // cập nhật liên tục số nốt và thời gian khi ghi
+        updateRecordStatus();
       }
     }
 
@@ -379,6 +378,7 @@
       playbackStartTime = Date.now();
       playbackEndTime = playbackStartTime + (noteRecords[noteRecords.length-1].ts || 0);
       showPlaybackRemaining();
+      // Phát lại đúng nhạc cụ từng nốt nếu có
       for (let i = 0; i < noteRecords.length; i++) {
         let rec = noteRecords[i];
         let t = setTimeout(async () => {
@@ -419,6 +419,7 @@
       if (playbackTimer) clearInterval(playbackTimer);
       playbackTimer = null;
     }
+
     function stopPlayback() {
       playbackTimeouts.forEach(tid => clearTimeout(tid));
       playbackTimeouts = [];
@@ -426,67 +427,49 @@
       setPlaybackUI(false);
       hidePlaybackRemaining();
     }
-
     // ========== UI RECORD ===========
     function setRecordUI(active) {
       recordBtn.classList.toggle('active', active);
       recordBtn.innerHTML = active ? '<span id="recIcon">⏹️</span> Dừng ghi âm' : '<span id="recIcon">⏺️</span> Ghi âm';
       recordStatus.classList.toggle('active', active);
-
-      if (active) {
-        startRecordTimer();
-      } else {
-        stopRecordTimer();
-      }
-      updateRecordStatus();
-      playBtn.disabled = noteRecords.length === 0 || active;
-      clearBtn.disabled = active;
+      recordStatus.textContent = active ? "Đang ghi âm..." : noteRecords.length>0 ? `Đã ghi ${noteRecords.length} nốt` : "Chưa ghi âm";
+      playBtn.disabled = noteRecords.length===0 || active;
+      downloadBtn.disabled = noteRecords.length===0 || active;
+      clearBtn.disabled = noteRecords.length===0 || active;
     }
     function setPlaybackUI(active) {
       playBtn.classList.toggle('active', active);
       playBtn.innerHTML = active ? '<span id="playIcon">⏹️</span> Dừng lại' : '<span id="playIcon">▶️</span> Phát lại';
       recordBtn.disabled = active;
-      clearBtn.disabled = active;
+      downloadBtn.disabled = noteRecords.length===0 || active;
+      clearBtn.disabled = noteRecords.length===0 || active;
       recordStatus.textContent = active ? "Đang phát lại..." : noteRecords.length>0 ? `Đã ghi ${noteRecords.length} nốt` : "Chưa ghi âm";
       playBtn.disabled = noteRecords.length===0;
     }
-    // ---- Đếm giây khi ghi âm ----
-    function startRecordTimer() {
-      recordTimer.style.display = "inline";
-      if (noteRecords.length === 0) recordTimer.textContent = "0 giây";
-      let getSec = () => {
-        if (!isRecording || noteRecords.length === 0) return 0;
-        return Math.floor((Date.now() - recordStart) / 1000);
-      };
-      recordTimer.textContent = getSec() + " giây";
-      recordInterval = setInterval(() => {
-        recordTimer.textContent = getSec() + " giây";
-        updateRecordStatus();
-      }, 500);
-    }
-    function stopRecordTimer() {
-      recordTimer.textContent = "";
-      recordTimer.style.display = "none";
-      if (recordInterval) clearInterval(recordInterval);
-      recordInterval = null;
-    }
-
-    // --- Sửa updateRecordStatus ---
     function updateRecordStatus() {
-      let status = 'Chưa ghi âm';
-      if (isRecording) {
-        let timeStr = "";
-        if (noteRecords.length > 0) {
-          let t = Math.floor((Date.now() - recordStart) / 1000);
-          timeStr = `, ${t} giây`;
-        }
-        status = `Đang ghi âm... Đã ghi ${noteRecords.length} nốt${timeStr}`;
-      } else if (noteRecords.length > 0) {
-        status = `Đã ghi ${noteRecords.length} nốt`;
-      }
-      recordStatus.textContent = status;
-      playBtn.disabled = noteRecords.length === 0 || isRecording;
-      clearBtn.disabled = isRecording;
+      let status='Chưa ghi âm';
+      if (isRecording) status = 'Đang ghi âm...';
+      else if (noteRecords.length>0) status = `Đã ghi ${noteRecords.length} nốt`;
+      recordStatus.textContent=status;
+      playBtn.disabled = noteRecords.length===0 || isRecording;
+      downloadBtn.disabled = noteRecords.length===0 || isRecording;
+      clearBtn.disabled = noteRecords.length===0 || isRecording;
+    }
+    // ========== TẢI VỀ FILE ===========
+    function downloadRecord() {
+      if (noteRecords.length===0) return;
+      let obj = {
+        instrument: currentInstrument,
+        notes: noteRecords,
+        date: new Date().toISOString(),
+        info: "Đây là file ghi lại bản chơi đàn piano nhac cụ - có thể chia sẻ hoặc tải lại trên web"
+      };
+      let url = URL.createObjectURL(new Blob([JSON.stringify(obj,null,2)],{type:"application/json"}));
+      let a = document.createElement('a');
+      a.href=url;
+      a.download="ban-ghi-piano-"+Date.now()+".json";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>{URL.revokeObjectURL(url)},1300);
     }
     function clearRecord(){
       if (isRecording) return;
@@ -498,14 +481,15 @@
     // ========== SỰ KIỆN NÚT ===========
     const recordBtn = document.getElementById('recordBtn');
     const playBtn = document.getElementById('playBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
     const recordStatus = document.getElementById('recordStatus');
     const clearBtn = document.getElementById('clearBtn');
-    playBtn.disabled = true; clearBtn.disabled = true; 
+    playBtn.disabled = true; downloadBtn.disabled = true; clearBtn.disabled = true;
     recordBtn.addEventListener('click', ()=>{
       if (isPlayingBack) return;
       if (!isRecording) {
         isRecording=true; noteRecords=[];
-        recordStart=Date.now(); setRecordUI(true); hidePlaybackRemaining();
+        recordStart=0; setRecordUI(true); hidePlaybackRemaining();
       } else {
         isRecording=false; setRecordUI(false);
       }
@@ -514,6 +498,7 @@
       if (isPlayingBack) { stopPlayback(); return; }
       if (noteRecords.length>0) playback();
     });
+    downloadBtn.addEventListener('click', downloadRecord);
     clearBtn.addEventListener('click', ()=>{clearRecord();});
 
     // Nút âm thanh
@@ -590,7 +575,6 @@
       renderPiano();
       document.getElementById('loadingStatus').style.display = 'none';
       updateRecordStatus();
-      recordTimer.style.display = 'none';
     });
   </script>
 </body>
