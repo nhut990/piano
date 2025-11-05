@@ -8,7 +8,6 @@
     body { font-family: Arial, sans-serif; background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); margin:0; padding:0; min-height:100vh; }
     .container { width:100%; max-width:860px; margin:auto; position:relative; padding:28px 0 14px;}
     h1 { color: #FFD700; text-align: center; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); margin: 0 0 10px 0;}
-    .created-by { text-align: center; color: #fff; font-size: 13px; opacity: 0.85; margin-bottom: 11px; }
     .sound-control {
       position: absolute; top: 10px; right: 14px;
       display: flex; flex-direction: column; align-items: center; z-index: 100;
@@ -92,6 +91,15 @@
       box-shadow: 0 2px 4px rgba(0,0,0,0.52); transition: all 0.05s;}
     .black-key.active { background: linear-gradient(137deg, #2ac7ec 0%, #76e2ff 100%); color: #1d8a95;}
     .black-key:active { background: linear-gradient(137deg, #b3e5fc 0%, #2ac7ec 100%);}
+    /* Để chữ "Created by Minh Nhựt" giữa cuối trang */
+    .created-by-footer {
+      text-align: center;
+      color: #fff;
+      font-size: 15px;
+      opacity: 0.91;
+      margin: 28px auto 14px auto;
+      width: 100%;
+    }
     @media (max-width: 1290px){
       .piano { width:98vw; max-width:1260px;}
     }
@@ -122,7 +130,6 @@
       <span class="sound-status" id="soundStatus">Tắt âm</span>
     </div>
     <h1>🎹 Đàn Piano & Nhạc Cụ</h1>
-    <div class="created-by">Created by Minh Nhựt - ghi âm nốt &amp; phát lại bàn phím</div>
     <div class="record-controls">
       <button class="rec-btn" id="recordBtn"><span id="recIcon">⏺️</span> Ghi âm</button>
       <button class="play-btn" id="playBtn" disabled><span id="playIcon">▶️</span> Phát lại</button>
@@ -159,6 +166,8 @@
       <div class="piano" id="piano"></div>
     </div>
   </div>
+  <!-- Dòng chữ ở chính giữa cuối trang -->
+  <div class="created-by-footer">Created by Minh Nhựt</div>
   <script>
     // ----------- Dữ liệu và trạng thái ----------
     const sampleInstruments = {
