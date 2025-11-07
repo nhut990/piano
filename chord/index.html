@@ -183,9 +183,47 @@
         const audioBufferCache = {};
         let isAudioActivated = false;
 
-        // --- Added: pending timers and active audio sources so we can cancel them when chord changes ---
+        // pending timers & active audio sources để hủy khi đổi hợp âm
         const pendingTimers = [];
         const activeAudioSources = [];
+
+        // Bản đồ tên tiếng Việt cơ sở (chỉ tên nốt không bao gồm "thăng/giáng")
+        const baseNoteVn = {
+            'C': 'Đô',
+            'D': 'Rê',
+            'E': 'Mi',
+            'F': 'Fa',
+            'G': 'Sol',
+            'A': 'La',
+            'B': 'Si'
+        };
+
+        // Bản đồ loại hợp âm sang tiếng Việt
+        const chordTypeVn = {
+            'major': 'trưởng',
+            'minor': 'thứ',
+            '7': '7 (dominant)',
+            'maj7': 'trưởng 7',
+            'm7': 'thứ 7',
+            'dim': 'giảm',
+            'aug': 'tăng',
+            'sus2': 'sus2',
+            'sus4': 'sus4',
+            '6': '6',
+            'm6': 'thứ 6'
+        };
+
+        function getVietnameseRoot(root) {
+            // root như "F#", "C", "A#"
+            const hasSharp = root.includes('#');
+            const hasFlat = root.includes('b'); // không dùng hiện tại nhưng để sẵn
+            const base = root.replace('#','').replace('b','');
+            const baseVn = baseNoteVn[base] || base;
+            let suffix = '';
+            if (hasSharp) suffix = ' thăng';
+            else if (hasFlat) suffix = ' giáng';
+            return baseVn + suffix;
+        }
 
         const audioActivateBtn = document.getElementById('audioActivateBtn');
         audioActivateBtn.addEventListener('click', async function() {
@@ -243,21 +281,14 @@
             await Promise.all(noteList.map(note => loadAudioBuffer(note)));
         }
 
-        // Helper: clear pending visual/audio actions when chord changes
         function clearPendingActions() {
-            // Clear any pending timeouts that will later re-add highlight/playing classes
             while (pendingTimers.length) {
                 const t = pendingTimers.pop();
                 clearTimeout(t);
             }
-            // Stop and remove any active audio sources to prevent finish callbacks or lingering sound
             while (activeAudioSources.length) {
                 const src = activeAudioSources.pop();
-                try {
-                    src.stop(0);
-                } catch (e) {
-                    // ignore if already stopped
-                }
+                try { src.stop(0); } catch (e) {}
             }
         }
 
@@ -275,7 +306,6 @@
                 source.buffer = audioBuffer;
                 source.connect(audioCtx.destination);
 
-                // Track active source so we can stop it if chord changes
                 activeAudioSources.push(source);
                 source.onended = () => {
                     const idx = activeAudioSources.indexOf(source);
@@ -306,9 +336,7 @@
             const rootIndex = notes.indexOf(root);
             const formula = chordFormulas[chordType];
             const chordNotes = [];
-            
             let startOctave = 3;
-            
             formula.forEach(interval => {
                 const noteIndex = (rootIndex + interval) % 12;
                 const octaveOffset = Math.floor((rootIndex + interval) / 12);
@@ -323,25 +351,19 @@
         function createPiano() {
             const pianoKeys = document.getElementById('pianoKeys');
             pianoKeys.innerHTML = '';
-            
             const isMobile = window.innerWidth <= 480;
             const whiteKeyWidth = isMobile ? 24 : 28;
-            let whiteKeyIndex = 0;
-            
             for (let octave = 3; octave <= 5; octave++) {
                 const endIndex = (octave === 5) ? 0 : 11;
-                
                 for (let i = 0; i <= endIndex; i++) {
                     const note = notes[i];
                     const noteName = note + octave;
                     const isBlack = note.includes('#');
-                    
                     if (!isBlack) {
                         const whiteKeyContainer = document.createElement('div');
                         whiteKeyContainer.style.position = 'relative';
                         whiteKeyContainer.style.display = 'inline-flex';
                         whiteKeyContainer.style.width = whiteKeyWidth + 'px';
-                        
                         const whiteKey = document.createElement('div');
                         whiteKey.className = 'key white-key';
                         whiteKey.dataset.note = noteName;
@@ -386,9 +408,7 @@
                             blackKey.className = 'key black-key';
                             const blackNoteName = notes[i+1] + octave;
                             blackKey.dataset.note = blackNoteName;
-                            
                             blackKey.style.left = (whiteKeyWidth * 0.65) + 'px';
-                            
                             const blackLabel = document.createElement('div');
                             blackLabel.className = 'key-label';
                             blackLabel.textContent = notes[i+1].replace('#', '♯') + octave;
@@ -428,9 +448,7 @@
                             });
                             whiteKeyContainer.appendChild(blackKey);
                         }
-                        
                         pianoKeys.appendChild(whiteKeyContainer);
-                        whiteKeyIndex++;
                     }
                 }
             }
@@ -438,32 +456,23 @@
 
         function scrollChordIntoView() {
             if (!currentChordNotes.length) return;
-            
             setTimeout(() => {
                 const pianoContainer = document.querySelector('.piano');
-                
                 const noteElements = currentChordNotes
                     .map(note => document.querySelector(`[data-note="${note}"]`))
                     .filter(el => el !== null);
-                    
                 if (noteElements.length) {
                     const positions = noteElements.map(el => {
                         const rect = el.getBoundingClientRect();
                         return pianoContainer.scrollLeft + rect.left - pianoContainer.getBoundingClientRect().left;
                     });
-                    
                     const leftEdge = Math.min(...positions);
                     const rightEdge = Math.max(...positions) + noteElements[0].offsetWidth;
                     const center = (leftEdge + rightEdge) / 2;
                     const containerWidth = pianoContainer.offsetWidth;
-                    
                     const scrollLeft = center - containerWidth / 2;
-                    
                     if (pianoContainer.scrollTo) {
-                        pianoContainer.scrollTo({
-                            left: scrollLeft,
-                            behavior: 'smooth'
-                        });
+                        pianoContainer.scrollTo({ left: scrollLeft, behavior: 'smooth' });
                     } else {
                         pianoContainer.scrollLeft = scrollLeft;
                     }
@@ -472,12 +481,14 @@
         }
 
         function updateChordDisplay() {
-            // Clear any pending timers / audio from previous plays so they won't re-apply highlights
+            // Hủy các action cũ để tránh nốt vàng sót lại
             clearPendingActions();
 
             const root = document.getElementById('rootNote').value;
             const chordType = document.getElementById('chordType').value;
             currentChordNotes = getChordNotes(root, chordType);
+
+            // Reset trạng thái phím
             document.querySelectorAll('.key').forEach(key => {
                 key.classList.remove('highlight','playing');
             });
@@ -485,12 +496,19 @@
                 const key = document.querySelector(`[data-note="${note}"]`);
                 if (key) key.classList.add('highlight');
             });
+
             const chordNames = {
                 'major': '', 'minor': 'm', '7': '7', 'maj7': 'maj7',
                 'm7': 'm7', 'dim': 'dim', 'aug': 'aug', 'sus2': 'sus2',
                 'sus4': 'sus4', '6': '6', 'm6': 'm6'
             };
-            document.getElementById('chordName').textContent = root + chordNames[chordType];
+
+            const displayRootWithSuffix = root + (chordNames[chordType] || '');
+            const vnRoot = getVietnameseRoot(root);
+            const vnType = chordTypeVn[chordType] || '';
+            const displayVn = (vnRoot + (vnType ? ' ' + vnType : '')).trim();
+
+            document.getElementById('chordName').textContent = `${displayRootWithSuffix} (${displayVn})`;
             document.getElementById('chordNotes').textContent = currentChordNotes.map(n => n.replace('#', '♯')).join(' - ');
             scrollChordIntoView();
         }
@@ -516,7 +534,6 @@
             document.getElementById('btnTogether').disabled = true;
             currentChordNotes.forEach(note => highlightKey(note, 'playing'));
             await Promise.all(currentChordNotes.map(note => playNote(note, 800)));
-            // store the timeout so we can clear it if user changes chord quickly
             const t = setTimeout(() => {
                 currentChordNotes.forEach(note => highlightKey(note, 'highlight'));
                 isPlaying = false;
