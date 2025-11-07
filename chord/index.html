@@ -446,28 +446,32 @@
             }, 50);
         }
 
+        function clearAllHighlight() {
+            // ✅ FIX: Xóa HẾT tất cả highlight, playing, và inline style từ TẤT CẢ phím
+            document.querySelectorAll('.key').forEach(key => {
+                key.classList.remove('highlight', 'playing');
+                // Force remove any lingering styles
+                if (key.classList.length === 1) { // Chỉ còn class 'key'
+                    key.style.background = '';
+                    key.style.boxShadow = '';
+                }
+            });
+        }
+
         function updateChordDisplay() {
             const root = document.getElementById('rootNote').value;
             const chordType = document.getElementById('chordType').value;
             const newChordNotes = getChordNotes(root, chordType);
 
-            // ✅ FIX: Xóa highlight từ tất cả các phím không nằm trong hợp âm mới
-            document.querySelectorAll('.key.highlight').forEach(key => {
-                const noteOfKey = key.dataset.note;
-                if (!newChordNotes.includes(noteOfKey)) {
-                    key.classList.remove('highlight');
-                }
-            });
-
-            // ✅ FIX: Xóa playing class từ tất cả phím
-            document.querySelectorAll('.key.playing').forEach(key => {
-                key.classList.remove('playing');
-            });
+            // ✅ FIX: Xóa sạch tất cả trước
+            clearAllHighlight();
 
             // ✅ FIX: Thêm highlight cho các nốt mới
             newChordNotes.forEach(note => {
                 const key = document.querySelector(`[data-note="${note}"]`);
-                if (key) key.classList.add('highlight');
+                if (key) {
+                    key.classList.add('highlight');
+                }
             });
 
             // ✅ FIX: Cập nhật currentChordNotes
@@ -518,7 +522,12 @@
             await Promise.all(currentChordNotes.map(note => playNote(note, 800)));
 
             setTimeout(() => {
-                currentChordNotes.forEach(note => highlightKey(note, 'highlight'));
+                clearAllHighlight();
+                // ✅ FIX: Re-highlight hợp âm hiện tại
+                currentChordNotes.forEach(note => {
+                    const key = document.querySelector(`[data-note="${note}"]`);
+                    if (key) key.classList.add('highlight');
+                });
                 isPlaying = false;
                 document.getElementById('btnSequential').disabled = false;
                 document.getElementById('btnTogether').disabled = false;
