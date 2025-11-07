@@ -198,14 +198,16 @@
             'B': 'Si'
         };
 
-        // Bản đồ loại hợp âm sang tiếng Việt
+        // Bản đồ loại hợp âm sang tiếng Việt (mặc định)
+        // Lưu ý: '7' sẽ hiển thị là "7" => kết hợp với root thành "Đô 7"
+        // 'dim' sẽ xử lý đặc biệt trong updateChordDisplay để hiển thị "Đô dim/Đô giảm"
         const chordTypeVn = {
             'major': 'trưởng',
             'minor': 'thứ',
-            '7': '7 (dominant)',
+            '7': '7',
             'maj7': 'trưởng 7',
             'm7': 'thứ 7',
-            'dim': 'giảm',
+            'dim': 'dim/giảm', // fallback, xử lý đặc biệt để lặp tên root nếu cần
             'aug': 'tăng',
             'sus2': 'sus2',
             'sus4': 'sus4',
@@ -505,8 +507,15 @@
 
             const displayRootWithSuffix = root + (chordNames[chordType] || '');
             const vnRoot = getVietnameseRoot(root);
-            const vnType = chordTypeVn[chordType] || '';
-            const displayVn = (vnRoot + (vnType ? ' ' + vnType : '')).trim();
+
+            // Xử lý special: với 'dim' hiển thị "Đô dim/Đô giảm"
+            let displayVn = '';
+            if (chordType === 'dim') {
+                displayVn = `${vnRoot} dim/${vnRoot} giảm`;
+            } else {
+                const vnType = chordTypeVn[chordType] || '';
+                displayVn = (vnRoot + (vnType ? ' ' + vnType : '')).trim();
+            }
 
             document.getElementById('chordName').textContent = `${displayRootWithSuffix} (${displayVn})`;
             document.getElementById('chordNotes').textContent = currentChordNotes.map(n => n.replace('#', '♯')).join(' - ');
