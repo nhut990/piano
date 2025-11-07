@@ -52,6 +52,19 @@
             opacity:.7;
             cursor:not-allowed;
         }
+        .mute-warning {
+            display: none;
+            margin-top: 10px;
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .mute-warning .actions { margin-top: 8px; display:flex; justify-content:center; gap:8px; }
+        .mute-warning button { padding:6px 12px; border-radius:6px; border:none; cursor:pointer; }
+        .mute-warning .btn-ok { background:#667eea; color:white; }
         .piano {
             position: relative; display: flex; justify-content: flex-start;
             margin: 20px auto; height: 180px; overflow-x: auto; overflow-y: hidden;
@@ -115,6 +128,12 @@
         <h1>🎹 Hợp Âm Piano</h1>
         <div class="audio-activate-wrapper">
             <button id="audioActivateBtn">🔊 Bật tiếng</button>
+            <div id="muteWarning" class="mute-warning" role="status" aria-live="polite">
+                Lưu ý: Nếu iPhone đang ở chế độ im lặng (Silent), trang web có thể không phát âm thanh. Vui lòng tắt chế độ im lặng hoặc chuyển công tắc bên hông sang chế độ chuông.
+                <div class="actions">
+                    <button id="muteOk" class="btn-ok">Đã hiểu</button>
+                </div>
+            </div>
         </div>
         <div class="chord-selector">
             <div class="selector-row">
@@ -187,47 +206,27 @@
         const pendingTimers = [];
         const activeAudioSources = [];
 
-        // Bản đồ tên tiếng Việt cơ sở (chỉ tên nốt không bao gồm "thăng/giáng")
-        const baseNoteVn = {
-            'C': 'Đô',
-            'D': 'Rê',
-            'E': 'Mi',
-            'F': 'Fa',
-            'G': 'Sol',
-            'A': 'La',
-            'B': 'Si'
-        };
-
-        // Bản đồ loại hợp âm sang tiếng Việt (mặc định)
-        // Lưu ý: '7' sẽ hiển thị là "7" => kết hợp với root thành "Đô 7"
-        // 'dim' sẽ xử lý đặc biệt trong updateChordDisplay để hiển thị "Đô dim/Đô giảm"
+        // Bản đồ tiếng Việt cơ bản cho nốt và loại hợp âm
+        const baseNoteVn = { 'C':'Đô','D':'Rê','E':'Mi','F':'Fa','G':'Sol','A':'La','B':'Si' };
         const chordTypeVn = {
-            'major': 'trưởng',
-            'minor': 'thứ',
-            '7': '7',
-            'maj7': 'trưởng 7',
-            'm7': 'thứ 7',
-            'dim': 'dim/giảm', // fallback, xử lý đặc biệt để lặp tên root nếu cần
-            'aug': 'tăng',
-            'sus2': 'sus2',
-            'sus4': 'sus4',
-            '6': '6',
-            'm6': 'thứ 6'
+            'major': 'trưởng','minor': 'thứ','7': '7','maj7': 'trưởng 7',
+            'm7': 'thứ 7','dim': 'dim/giảm','aug': 'tăng','sus2':'sus2',
+            'sus4':'sus4','6':'6','m6':'thứ 6'
         };
 
-        function getVietnameseRoot(root) {
-            // root như "F#", "C", "A#"
-            const hasSharp = root.includes('#');
-            const hasFlat = root.includes('b'); // không dùng hiện tại nhưng để sẵn
-            const base = root.replace('#','').replace('b','');
-            const baseVn = baseNoteVn[base] || base;
-            let suffix = '';
-            if (hasSharp) suffix = ' thăng';
-            else if (hasFlat) suffix = ' giáng';
-            return baseVn + suffix;
+        // Detect iOS
+        function isIos() {
+            return /iP(hone|od|ad)/.test(navigator.platform) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
         }
 
         const audioActivateBtn = document.getElementById('audioActivateBtn');
+        const muteWarning = document.getElementById('muteWarning');
+        const muteOk = document.getElementById('muteOk');
+
+        muteOk.addEventListener('click', () => {
+            muteWarning.style.display = 'none';
+        });
+
         audioActivateBtn.addEventListener('click', async function() {
             audioActivateBtn.disabled = true;
             audioActivateBtn.textContent = "Đang bật tiếng...";
@@ -235,6 +234,12 @@
                 await activateAudioOnIOS();
                 audioActivateBtn.textContent = "Âm thanh đã bật!";
                 isAudioActivated = true;
+
+                // If iOS, show guidance about silent switch because web cannot override it
+                if (isIos()) {
+                    // show warning (user may still be in silent mode)
+                    muteWarning.style.display = 'block';
+                }
             } catch (e) {
                 audioActivateBtn.disabled = false;
                 audioActivateBtn.textContent = "🔊 Bật tiếng (lỗi, thử lại)";
@@ -243,16 +248,62 @@
         });
 
         async function activateAudioOnIOS() {
+            // Resume AudioContext if suspended (user gesture)
             if (audioCtx.state === 'suspended') await audioCtx.resume();
-            let url = 'https://raw.githubusercontent.com/nhut990/files/refs/heads/main/tieng/E3_active_audio.mp3';
-            let response = await fetch(url);
-            let buffer = await response.arrayBuffer();
-            let audioBuffer = await audioCtx.decodeAudioData(buffer);
-            let source = audioCtx.createBufferSource();
-            source.buffer = audioBuffer;
-            source.connect(audioCtx.destination);
-            source.start(0);
-            await new Promise(resolve => setTimeout(resolve, 330));
+
+            // Best-effort: play a tiny silent buffer to "wake" audio session on some iOS versions.
+            // NOTE: This may still be muted if the device silent switch is ON. There's no reliable
+            // way for web to force sound on when device is in Silent mode.
+            try {
+                // Try playing the existing activation mp3 first (if accessible)
+                const url = 'https://raw.githubusercontent.com/nhut990/files/refs/heads/main/tieng/E3_active_audio.mp3';
+                const response = await fetch(url, {cache: 'no-cache'});
+                if (response.ok) {
+                    const buffer = await response.arrayBuffer();
+                    const audioBuffer = await audioCtx.decodeAudioData(buffer.slice(0));
+                    const source = audioCtx.createBufferSource();
+                    source.buffer = audioBuffer;
+                    source.connect(audioCtx.destination);
+                    source.start(0);
+                    activeAudioSources.push(source);
+                    source.onended = () => {
+                        const i = activeAudioSources.indexOf(source);
+                        if (i !== -1) activeAudioSources.splice(i,1);
+                    };
+                    // wait a bit to ensure it started
+                    await new Promise(res => setTimeout(res, 350));
+                    return;
+                }
+            } catch (err) {
+                // ignore and fallback to silent buffer trick below
+            }
+
+            // Fallback: create and play a short silent buffer (very low amplitude) to engage audio
+            try {
+                const sampleRate = audioCtx.sampleRate || 44100;
+                const length = Math.floor(sampleRate * 0.05); // 50ms
+                const buffer = audioCtx.createBuffer(1, length, sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < length; i++) data[i] = 0.0; // silent
+
+                const source = audioCtx.createBufferSource();
+                source.buffer = buffer;
+                // use a tiny gain so it's effectively silent but still plays
+                const gain = audioCtx.createGain();
+                gain.gain.value = 0.0001;
+                source.connect(gain).connect(audioCtx.destination);
+
+                activeAudioSources.push(source);
+                source.onended = () => {
+                    const i = activeAudioSources.indexOf(source);
+                    if (i !== -1) activeAudioSources.splice(i,1);
+                };
+
+                source.start(0);
+                await new Promise(res => setTimeout(res, 120));
+            } catch (err) {
+                console.error('activateAudioOnIOS fallback error', err);
+            }
         }
 
         async function loadAudioBuffer(noteName) {
@@ -264,7 +315,7 @@
             try {
                 const response = await fetch(audioUrl);
                 const arrayBuffer = await response.arrayBuffer();
-                const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer.slice(0));
                 audioBufferCache[noteName] = audioBuffer;
                 return audioBuffer;    
             } catch (error) {
@@ -332,6 +383,17 @@
                 key.classList.remove('playing', 'highlight');
                 if (className) key.classList.add(className);
             }
+        }
+
+        function getVietnameseRoot(root) {
+            const hasSharp = root.includes('#');
+            const hasFlat = root.includes('b');
+            const base = root.replace('#','').replace('b','');
+            const baseVn = baseNoteVn[base] || base;
+            let suffix = '';
+            if (hasSharp) suffix = ' thăng';
+            else if (hasFlat) suffix = ' giáng';
+            return baseVn + suffix;
         }
 
         function getChordNotes(root, chordType) {
@@ -483,14 +545,10 @@
         }
 
         function updateChordDisplay() {
-            // Hủy các action cũ để tránh nốt vàng sót lại
             clearPendingActions();
-
             const root = document.getElementById('rootNote').value;
             const chordType = document.getElementById('chordType').value;
             currentChordNotes = getChordNotes(root, chordType);
-
-            // Reset trạng thái phím
             document.querySelectorAll('.key').forEach(key => {
                 key.classList.remove('highlight','playing');
             });
@@ -508,10 +566,12 @@
             const displayRootWithSuffix = root + (chordNames[chordType] || '');
             const vnRoot = getVietnameseRoot(root);
 
-            // Xử lý special: với 'dim' hiển thị "Đô dim/Đô giảm"
             let displayVn = '';
             if (chordType === 'dim') {
                 displayVn = `${vnRoot} dim/${vnRoot} giảm`;
+            } else if (chordType === '7') {
+                // For '7' show "(Đô 7)"
+                displayVn = `${vnRoot} 7`;
             } else {
                 const vnType = chordTypeVn[chordType] || '';
                 displayVn = (vnRoot + (vnType ? ' ' + vnType : '')).trim();
