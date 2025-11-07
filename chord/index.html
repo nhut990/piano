@@ -57,7 +57,14 @@
             margin: 20px auto; height: 180px; overflow-x: auto; overflow-y: hidden;
             -webkit-overflow-scrolling: touch;
         }
-        .piano-keys { position: relative; display: inline-flex; white-space: nowrap; min-width: min-content; height: 180px; }
+        .piano-keys { 
+            position: relative; 
+            display: inline-flex; 
+            white-space: nowrap; 
+            min-width: min-content; 
+            height: 180px;
+            align-items: flex-start;
+        }
         .key { position: relative; cursor: pointer; user-select: none; flex-shrink: 0; }
         .white-key {
             width: 28px; height: 180px; background: white; border: 1px solid #000;
@@ -69,6 +76,7 @@
         .black-key {
             width: 20px; height: 110px; background: #000; border: 1px solid #000;
             border-radius: 0 0 3px 3px; position: absolute; z-index: 10;
+            top: 0;
         }
         .black-key:active { background: #ff5722; box-shadow: 0 0 15px rgba(255,87,34,0.9);}
         .black-key.highlight { background: #ffd700; box-shadow: 0 0 10px rgba(255,215,0,0.8);}
@@ -223,7 +231,6 @@
 
         async function preloadAllNotesBuffer() {
             const noteList = [];
-            // Load từ C3 đến C5
             for (let octave = 3; octave <= 5; octave++) {
                 const endIndex = (octave === 5) ? 0 : 11;
                 for (let i = 0; i <= endIndex; i++) {
@@ -269,7 +276,6 @@
             const formula = chordFormulas[chordType];
             const chordNotes = [];
             
-            // Nếu root là C, C#, D, D# thì bắt đầu từ octave 3, còn lại từ octave 3
             let startOctave = 3;
             
             formula.forEach(interval => {
@@ -287,15 +293,13 @@
             const pianoKeys = document.getElementById('pianoKeys');
             pianoKeys.innerHTML = '';
             
-            // Sử dụng width từ CSS thay vì hardcode
             const isMobile = window.innerWidth <= 480;
             const whiteKeyWidth = isMobile ? 24 : 28;
             let whiteKeyIndex = 0;
             
-            // Bắt đầu từ C3 và kết thúc ở C5
             for (let octave = 3; octave <= 5; octave++) {
-                const startIndex = (octave === 3) ? 0 : 0; // Bắt đầu từ C
-                const endIndex = (octave === 5) ? 0 : 11; // Kết thúc ở C5
+                const startIndex = (octave === 3) ? 0 : 0;
+                const endIndex = (octave === 5) ? 0 : 11;
                 
                 for (let i = startIndex; i <= endIndex; i++) {
                     const note = notes[i];
@@ -303,6 +307,11 @@
                     const isBlack = note.includes('#');
                     
                     if (!isBlack) {
+                        const whiteKeyContainer = document.createElement('div');
+                        whiteKeyContainer.style.position = 'relative';
+                        whiteKeyContainer.style.display = 'inline-flex';
+                        whiteKeyContainer.style.width = whiteKeyWidth + 'px';
+                        
                         const whiteKey = document.createElement('div');
                         whiteKey.className = 'key white-key';
                         whiteKey.dataset.note = noteName;
@@ -340,17 +349,15 @@
                                 whiteKey.classList.add('highlight');
                             }
                         });
-                        pianoKeys.appendChild(whiteKey);
+                        whiteKeyContainer.appendChild(whiteKey);
 
-                        // Tạo phím đen nếu có (không có phím đen sau E và B)
                         if (i < 11 && notes[i+1].includes('#') && note !== 'E' && note !== 'B') {
                             const blackKey = document.createElement('div');
                             blackKey.className = 'key black-key';
                             const blackNoteName = notes[i+1] + octave;
                             blackKey.dataset.note = blackNoteName;
                             
-                            // Định vị phím đen giữa hai phím trắng
-                            blackKey.style.left = `${whiteKeyIndex * whiteKeyWidth + whiteKeyWidth - 10}px`;
+                            blackKey.style.left = (whiteKeyWidth * 0.65) + 'px';
                             
                             const blackLabel = document.createElement('div');
                             blackLabel.className = 'key-label';
@@ -389,8 +396,10 @@
                                     blackKey.classList.add('highlight');
                                 }
                             });
-                            pianoKeys.appendChild(blackKey);
+                            whiteKeyContainer.appendChild(blackKey);
                         }
+                        
+                        pianoKeys.appendChild(whiteKeyContainer);
                         whiteKeyIndex++;
                     }
                 }
@@ -400,27 +409,26 @@
         function scrollChordIntoView() {
             if (!currentChordNotes.length) return;
             
-            // Đợi một chút để DOM render xong
             setTimeout(() => {
                 const pianoContainer = document.querySelector('.piano');
-                const pianoKeysDiv = document.getElementById('pianoKeys');
                 
-                const noteIndexes = currentChordNotes
-                    .map(note => {
-                        const el = document.querySelector(`[data-note="${note}"]`);
-                        return el ? el.offsetLeft + el.offsetWidth/2 : null;
-                    })
+                const noteElements = currentChordNotes
+                    .map(note => document.querySelector(`[data-note="${note}"]`))
                     .filter(el => el !== null);
                     
-                if (noteIndexes.length) {
-                    const leftEdge = Math.min(...noteIndexes);
-                    const rightEdge = Math.max(...noteIndexes);
+                if (noteElements.length) {
+                    const positions = noteElements.map(el => {
+                        const rect = el.getBoundingClientRect();
+                        return pianoContainer.scrollLeft + rect.left - pianoContainer.getBoundingClientRect().left;
+                    });
+                    
+                    const leftEdge = Math.min(...positions);
+                    const rightEdge = Math.max(...positions) + noteElements[0].offsetWidth;
                     const center = (leftEdge + rightEdge) / 2;
                     const containerWidth = pianoContainer.offsetWidth;
                     
                     const scrollLeft = center - containerWidth / 2;
                     
-                    // Sử dụng cả scrollTo và scrollLeft để đảm bảo hoạt động trên mọi thiết bị
                     if (pianoContainer.scrollTo) {
                         pianoContainer.scrollTo({
                             left: scrollLeft,
@@ -430,7 +438,7 @@
                         pianoContainer.scrollLeft = scrollLeft;
                     }
                 }
-            }, 100);
+            }, 50);
         }
 
         function updateChordDisplay() {
@@ -487,6 +495,13 @@
         document.getElementById('chordType').addEventListener('change', updateChordDisplay);
         document.getElementById('btnSequential').addEventListener('click', playSequential);
         document.getElementById('btnTogether').addEventListener('click', playTogether);
+
+        function handleResize() {
+            createPiano();
+            updateChordDisplay();
+        }
+
+        window.addEventListener('resize', handleResize);
 
         createPiano();
         updateChordDisplay();
