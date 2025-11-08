@@ -17,16 +17,34 @@
       --active-green-b: linear-gradient(137deg, #1fa86a 0%, #13914f 100%);
     }
 
+    /* --- Global app no-select/callout to eliminate copy menu within app area --- */
+    html, body {
+      -webkit-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none; /* iOS callout */
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* apply to the app wrapper and all descendants */
+    #appWrap, #appWrap * {
+      -webkit-user-select: none !important;
+      -ms-user-select: none !important;
+      user-select: none !important;
+      -webkit-touch-callout: none !important;
+      -webkit-user-drag: none !important;
+      -webkit-tap-highlight-color: transparent !important;
+    }
+
     html,body{height:100%;margin:0;font-family:Arial, Helvetica, sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);-webkit-font-smoothing:antialiased;}
     .wrap{max-width:1240px;margin:0 auto;padding:20px;box-sizing:border-box;position:relative;}
 
-    /* --- Sound control: prevent selection / callout globally for these controls --- */
+    /* --- Sound control styles --- */
     .sound-control,
     .sound-control * {
       -webkit-user-select: none;
       -ms-user-select: none;
       user-select: none;
-      -webkit-touch-callout: none; /* iOS: disable callout */
+      -webkit-touch-callout: none;
       -webkit-tap-highlight-color: transparent;
     }
 
@@ -39,6 +57,7 @@
       flex-direction:column;
       align-items:center;
       gap:6px;
+      pointer-events: auto;
     }
     .sound-toggle {
       background: linear-gradient(145deg, #2ac7ec, #1594bb);
@@ -68,10 +87,6 @@
       height: var(--white-key-height);
       margin: 0 auto;
       touch-action: none;
-      user-select: none;
-      -webkit-user-select: none;
-      -ms-user-select: none;
-      -webkit-touch-callout: none;
       min-width: 320px;
     }
     /* Landscape modifier: kéo dài bàn phím theo chiều đứng */
@@ -95,11 +110,6 @@
       font-weight:700;
       box-sizing: border-box;
       transition: all 0.06s;
-      -webkit-user-select: none;
-      -ms-user-select: none;
-      user-select: none;
-      -webkit-touch-callout: none;
-      -webkit-tap-highlight-color: transparent;
     }
     body.landscape .white-key {
       height: var(--white-key-height-landscape);
@@ -125,11 +135,6 @@
       font-weight:700;
       box-shadow: 0 2px 6px rgba(0,0,0,0.5);
       transition: all 0.05s;
-      -webkit-user-select: none;
-      -ms-user-select: none;
-      user-select: none;
-      -webkit-touch-callout: none;
-      -webkit-tap-highlight-color: transparent;
     }
     body.landscape .black-key {
       height: var(--black-key-height-landscape);
@@ -146,8 +151,6 @@
       margin: 10px 0 26px;
       font-size: 15px;
       text-shadow: 0 2px 6px rgba(0,0,0,0.25);
-      user-select: none;
-      -webkit-user-select: none;
     }
     /* Hide the hint when in landscape */
     body.landscape .portrait-hint { display: none; }
@@ -174,7 +177,7 @@
   </style>
 </head>
 <body>
-  <div class="wrap">
+  <div id="appWrap" class="wrap">
     <div class="sound-control" id="soundControl">
       <button id="soundToggle" class="sound-toggle muted" aria-pressed="false" title="Kích hoạt âm">
         <span id="soundIcon">🔇</span>
@@ -190,7 +193,7 @@
   </div>
 
   <script>
-    // --- dữ liệu nốt ---
+    // ========== Dữ liệu & audio ==========
     const pianoNotes = [
       'C3','C#3','D3','D#3','E3','F3','F#3','G3','G#3','A3','A#3','B3',
       'C4','C#4','D4','D#4','E4','F4','F#4','G4','G#4','A4','A#4','B4',
@@ -204,11 +207,9 @@
       'C5':523.25,'C#5':554.37,'D5':587.33,'D#5':622.25,'E5':659.25,'F5':698.46,'F#5':739.99,
       'G5':783.99,'G#5':830.61,'A5':880.00
     };
-
     const sampleBaseURL = "https://raw.githubusercontent.com/Nhut11790/nhut11790.github.io/main/tieng/";
     const pianoFolder = "acoustic_grand_piano-mp3";
 
-    // --- audio ---
     let audioContext = null;
     let isAudioActivated = false;
     let isMuted = true;
@@ -220,7 +221,6 @@
       }
       if(audioContext.state === 'suspended') audioContext.resume().catch(()=>{});
     }
-
     function convertSharpToFlat(note){
       const sharpToFlat = { 'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb' };
       for (let sharp in sharpToFlat) {
@@ -228,7 +228,6 @@
       }
       return note;
     }
-
     async function preloadPiano(){
       initAudioContext();
       const pianoNotesList = pianoNotes;
@@ -243,7 +242,6 @@
       });
       await Promise.all(promises);
     }
-
     async function playSample(note, volume=1.0, duration=1100){
       if(!audioContext || !isAudioActivated) return;
       let buffer = sampleBuffers[note];
@@ -272,9 +270,10 @@
       }catch(e){}
     }
 
-    // --- render piano ---
+    // ========== Render piano ==========
     const pianoDiv = document.getElementById('piano');
     const pianoContainer = document.getElementById('pianoContainer');
+    const appWrap = document.getElementById('appWrap');
 
     function getWhiteKeys(){
       const whites = [];
@@ -336,7 +335,7 @@
       });
     }
 
-    // --- events: pointer-based so active stays until release ---
+    // ========== Pointer events (active until release) ==========
     function bindKeyEvents(el, note){
       const onPointerDown = (e) => {
         if (e.isPrimary === false && e.pointerType === 'mouse') return;
@@ -358,12 +357,12 @@
       el.addEventListener('pointercancel', onPointerUp);
       el.addEventListener('lostpointercapture', onPointerUp);
 
-      // Prevent context menu / selection on long-press
+      // Prevent context menu / selection on long-press for this element
       el.addEventListener('contextmenu', (ev) => ev.preventDefault());
       el.addEventListener('selectstart', (ev) => ev.preventDefault());
       el.addEventListener('dblclick', (e)=> e.preventDefault());
 
-      // keyboard accessibility: keep active while key is held
+      // keyboard accessibility
       el.addEventListener('keydown', (e) => {
         if(e.key === 'Enter' || e.key === ' '){
           e.preventDefault();
@@ -390,25 +389,63 @@
       setTimeout(()=>{ s.textContent = orig; s.style.color=''; alertShown=false; }, 1600);
     }
 
-    // --- prevent context/select on sound controls specifically (fix for your screenshot) ---
+    // ========== Prevent copy/menu when long-pressing anywhere inside appWrap ==========
+    // If selection/copy/contextmenu originates from inside the app, block it and clear selection.
+    document.addEventListener('contextmenu', (e) => {
+      // if target is inside our app wrapper, suppress native context menu
+      if (appWrap && appWrap.contains(e.target)) {
+        e.preventDefault();
+      }
+    }, {passive:false});
+
+    document.addEventListener('selectstart', (e) => {
+      if (appWrap && appWrap.contains(e.target)) {
+        e.preventDefault();
+      }
+    }, {passive:false});
+
+    // on selection change: if selection inside app area, clear it immediately
+    document.addEventListener('selectionchange', () => {
+      try {
+        const sel = document.getSelection();
+        if (!sel) return;
+        if (sel.isCollapsed) return;
+        const anchor = sel.anchorNode;
+        const focus = sel.focusNode;
+        if ((anchor && appWrap.contains(anchor)) || (focus && appWrap.contains(focus))) {
+          sel.removeAllRanges();
+        }
+      } catch (err) { /* ignore */ }
+    });
+
+    // prevent copy event originating from app area
+    document.addEventListener('copy', (e) => {
+      try {
+        const sel = document.getSelection();
+        if ( (sel && sel.anchorNode && appWrap.contains(sel.anchorNode)) || (e.target && appWrap.contains(e.target)) ) {
+          e.preventDefault();
+        }
+      } catch (err) {}
+    }, {passive:false});
+
+    // prevent touch-callout fallback (stop propagation of touchstart inside app)
+    appWrap.addEventListener('touchstart', (e) => {
+      // do not preventDefault here (we want pointer events to work), but stop propagation to browser heuristics
+      e.stopPropagation();
+    }, {passive:true});
+
+    // Also explicitly block contextmenu on sound controls (fix screenshot case)
     const soundToggle = document.getElementById('soundToggle');
     const soundStatus = document.getElementById('soundStatus');
     const soundControl = document.getElementById('soundControl');
-
-    // block native context menu / selection on the label and button
     [soundToggle, soundStatus, soundControl].forEach(el=>{
       if(!el) return;
       el.addEventListener('contextmenu', e => e.preventDefault());
       el.addEventListener('selectstart', e => e.preventDefault());
-      // On iOS some UAs still show callout when long-pressing an element with text.
-      // Setting touch-callout via CSS plus preventing touchstart default helps:
-      el.addEventListener('touchstart', (e)=> {
-        // don't call preventDefault here to allow pointer events, but stop propagation of native selection events:
-        e.stopPropagation();
-      }, {passive:true});
+      el.addEventListener('touchstart', (e)=> e.stopPropagation(), {passive:true});
     });
 
-    // --- orientation handling ---
+    // ========== Orientation / render handling ==========
     function applyOrientationClass(){
       const isLandscape = window.innerWidth > window.innerHeight;
       document.body.classList.toggle('landscape', isLandscape);
@@ -429,7 +466,7 @@
     window.addEventListener('resize', handleResize);
     window.addEventListener('orientationchange', handleResize);
 
-    // --- sound activation (iOS friendly) ---
+    // ========== Sound activation (iOS friendly) ==========
     soundToggle.addEventListener('click', async ()=>{
       if(isAudioActivated) return;
       soundToggle.disabled = true;
@@ -467,7 +504,7 @@
       }
     });
 
-    // --- load / init ---
+    // ========== Init on load ==========
     window.addEventListener('load', async ()=>{
       applyOrientationClass();
       try{
