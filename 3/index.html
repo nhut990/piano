@@ -2,7 +2,15 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover" />
+  <!-- Ngăn trình duyệt thu phóng bằng double-tap và cho web app chạy full-screen khi thêm vào màn hình chính iOS -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="format-detection" content="telephone=no" />
+  <!-- Sử dụng icon từ repo @nhut990/files (raw URL) -->
+  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/nhut990/files/8945724b30e2ff4459c080e2d62fdcf25a59aba4/hinh/IMG_6368.jpeg" />
+  <link rel="icon" href="https://raw.githubusercontent.com/nhut990/files/8945724b30e2ff4459c080e2d62fdcf25a59aba4/hinh/IMG_6368.jpeg" />
+  <link rel="manifest" href="manifest.json" />
   <title>Đàn Piano</title>
   <style>
     :root{
@@ -24,6 +32,7 @@
       user-select: none;
       -webkit-touch-callout: none; /* iOS callout */
       -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation; /* giúp ngăn double-tap-zoom trên nhiều trình duyệt */
     }
     /* apply to the app wrapper and all descendants */
     #appWrap, #appWrap * {
@@ -33,7 +42,15 @@
       -webkit-touch-callout: none !important;
       -webkit-user-drag: none !important;
       -webkit-tap-highlight-color: transparent !important;
+      touch-action: manipulation !important;
     }
+
+    /* ---- keep piano handling as before (no gestures inside piano) ---- */
+    .piano { touch-action: none; }
+
+    /* html-wide fallback to ensure no selectable text anywhere inside the app area */
+    /* (lưu ý: nếu bạn có input/textarea, hãy loại bỏ selector này cho những phần đó) */
+    #appWrap, #appWrap * { -webkit-user-select: none !important; user-select: none !important; }
 
     html,body{height:100%;margin:0;font-family:Arial, Helvetica, sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);-webkit-font-smoothing:antialiased;}
     .wrap{max-width:1240px;margin:0 auto;padding:20px;box-sizing:border-box;position:relative;}
@@ -110,6 +127,8 @@
       font-weight:700;
       box-sizing: border-box;
       transition: all 0.06s;
+      -webkit-user-select: none;
+      user-select: none;
     }
     body.landscape .white-key {
       height: var(--white-key-height-landscape);
@@ -135,6 +154,8 @@
       font-weight:700;
       box-shadow: 0 2px 6px rgba(0,0,0,0.5);
       transition: all 0.05s;
+      -webkit-user-select: none;
+      user-select: none;
     }
     body.landscape .black-key {
       height: var(--black-key-height-landscape);
@@ -465,6 +486,26 @@
     }
     window.addEventListener('resize', handleResize);
     window.addEventListener('orientationchange', handleResize);
+
+    // ========== Prevent double-tap zoom (iOS & others) ==========
+    // Nếu người dùng chạm hai lần liên tiếp nhanh (<300ms), chặn hành động zoom mặc định.
+    // Chú ý: lắng nghe với passive:false để có thể preventDefault().
+    (function preventDoubleTapZoom(){
+      let lastTouch = 0;
+      document.addEventListener('touchend', function(e){
+        // cho phép inputs (nếu có sau này) — không chặn khi target là input/textarea hoặc contentEditable
+        const t = e.target;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) {
+          lastTouch = Date.now();
+          return;
+        }
+        const now = Date.now();
+        if (now - lastTouch <= 300) {
+          e.preventDefault(); // chặn zoom
+        }
+        lastTouch = now;
+      }, {passive:false});
+    })();
 
     // ========== Sound activation (iOS friendly) ==========
     soundToggle.addEventListener('click', async ()=>{
