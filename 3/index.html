@@ -7,10 +7,6 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="format-detection" content="telephone=no" />
-  <!-- Sử dụng icon từ repo @nhut990/files (raw URL) -->
-  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/nhut990/files/8945724b30e2ff4459c080e2d62fdcf25a59aba4/hinh/IMG_6368.jpeg" />
-  <link rel="icon" href="https://raw.githubusercontent.com/nhut990/files/8945724b30e2ff4459c080e2d62fdcf25a59aba4/hinh/IMG_6368.jpeg" />
-  <link rel="manifest" href="manifest.json" />
   <title>Đàn Piano</title>
   <style>
     :root{
@@ -32,9 +28,10 @@
       user-select: none;
       -webkit-touch-callout: none; /* iOS callout */
       -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation; /* giúp ngăn double-tap-zoom trên nhiều trình duyệt */
+      /* Do NOT set a blanket touch-action: manipulation on all descendants (may override .piano) */
+      touch-action: auto;
     }
-    /* apply to the app wrapper and all descendants */
+    /* apply to the app wrapper and all descendants (no blanket touch-action) */
     #appWrap, #appWrap * {
       -webkit-user-select: none !important;
       -ms-user-select: none !important;
@@ -42,15 +39,10 @@
       -webkit-touch-callout: none !important;
       -webkit-user-drag: none !important;
       -webkit-tap-highlight-color: transparent !important;
-      touch-action: manipulation !important;
     }
 
     /* ---- keep piano handling as before (no gestures inside piano) ---- */
-    .piano { touch-action: none; }
-
-    /* html-wide fallback to ensure no selectable text anywhere inside the app area */
-    /* (lưu ý: nếu bạn có input/textarea, hãy loại bỏ selector này cho những phần đó) */
-    #appWrap, #appWrap * { -webkit-user-select: none !important; user-select: none !important; }
+    .piano { touch-action: none !important; } /* ensure piano disables browser gestures for consistent touch handling */
 
     html,body{height:100%;margin:0;font-family:Arial, Helvetica, sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);-webkit-font-smoothing:antialiased;}
     .wrap{max-width:1240px;margin:0 auto;padding:20px;box-sizing:border-box;position:relative;}
@@ -63,6 +55,7 @@
       user-select: none;
       -webkit-touch-callout: none;
       -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation; /* controls can accept simple taps */
     }
 
     .sound-control {
@@ -105,6 +98,7 @@
       margin: 0 auto;
       touch-action: none;
       min-width: 320px;
+      user-select: none;
     }
     /* Landscape modifier: kéo dài bàn phím theo chiều đứng */
     body.landscape .piano {
@@ -129,6 +123,7 @@
       transition: all 0.06s;
       -webkit-user-select: none;
       user-select: none;
+      touch-action: none;
     }
     body.landscape .white-key {
       height: var(--white-key-height-landscape);
@@ -156,6 +151,7 @@
       transition: all 0.05s;
       -webkit-user-select: none;
       user-select: none;
+      touch-action: none;
     }
     body.landscape .black-key {
       height: var(--black-key-height-landscape);
@@ -214,7 +210,7 @@
   </div>
 
   <script>
-    // ========== Dữ liệu & audio ==========
+    // ========= 数据 & audio ==========
     const pianoNotes = [
       'C3','C#3','D3','D#3','E3','F3','F#3','G3','G#3','A3','A#3','B3',
       'C4','C#4','D4','D#4','E4','F4','F#4','G4','G#4','A4','A#4','B4',
@@ -232,16 +228,35 @@
     const pianoFolder = "acoustic_grand_piano-mp3";
 
     let audioContext = null;
-    let isAudioActivated = false;
+    let isAudioActivated = false; // whether AudioContext activation flow completed
     let isMuted = true;
     const sampleBuffers = {};
+    const preloadState = { started: false, done: false };
 
     function initAudioContext(){
       if(!audioContext){
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
       }
-      if(audioContext.state === 'suspended') audioContext.resume().catch(()=>{});
+      if(audioContext.state === 'suspended') {
+        audioContext.resume().catch(()=>{});
+      }
     }
+
+    // decodeAudioData wrapper for broad compatibility (Promise + callback fallback)
+    function decodeAudioDataAsync(ctx, arrayBuffer){
+      return new Promise((resolve, reject) => {
+        try {
+          const p = ctx.decodeAudioData(arrayBuffer, resolve, reject);
+          // Some browsers return a promise
+          if (p && typeof p.then === 'function'){
+            p.then(resolve).catch(reject);
+          }
+        } catch(err){
+          reject(err);
+        }
+      });
+    }
+
     function convertSharpToFlat(note){
       const sharpToFlat = { 'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb' };
       for (let sharp in sharpToFlat) {
@@ -249,49 +264,100 @@
       }
       return note;
     }
-    async function preloadPiano(){
+
+    // Preload with concurrency limit to avoid overwhelming mobile memory/network
+    async function preloadPiano(concurrency = 5){
+      if(preloadState.started) return;
+      preloadState.started = true;
       initAudioContext();
-      const pianoNotesList = pianoNotes;
-      let promises = pianoNotesList.map(note=>{
-        const flatNote = convertSharpToFlat(note);
-        const fileName = flatNote + '.mp3';
+
+      const notesToLoad = pianoNotes.slice(); // copy
+      let idx = 0;
+      const active = [];
+
+      function next(){
+        if(idx >= notesToLoad.length) return null;
+        const note = notesToLoad[idx++];
+        const flat = convertSharpToFlat(note);
+        const fileName = flat + '.mp3';
         const url = `${sampleBaseURL}${pianoFolder}/${fileName}`;
-        return fetch(url).then(r => r.ok ? r.arrayBuffer() : null)
-          .then(buf => buf ? audioContext.decodeAudioData(buf.slice(0)) : null)
-          .then(audioBuf => { if(audioBuf) sampleBuffers[note]=audioBuf; })
-          .catch(()=>{ /* ignore */ });
-      });
-      await Promise.all(promises);
+        const p = fetch(url)
+          .then(r => {
+            if(!r.ok) throw new Error('Network');
+            return r.arrayBuffer();
+          })
+          .then(buf => decodeAudioDataAsync(audioContext, buf.slice(0)))
+          .then(audioBuf => { sampleBuffers[note] = audioBuf; })
+          .catch(err => { /* ignore individual failures */ });
+        return p;
+      }
+
+      // kick off initial workers
+      for(let i=0;i<concurrency;i++){
+        const p = (async function worker(){
+          while(true){
+            const job = next();
+            if(!job) break;
+            await job;
+          }
+        })();
+        active.push(p);
+      }
+
+      await Promise.all(active);
+      preloadState.done = true;
+      // console.log('Preload done, loaded:', Object.keys(sampleBuffers).length);
     }
+
     async function playSample(note, volume=1.0, duration=1100){
       if(!audioContext || !isAudioActivated) return;
+      if(isMuted) return;
       let buffer = sampleBuffers[note];
       let rootNote = note;
       if(!buffer){
+        // try best-approximate buffer (closest frequency)
         const available = Object.keys(sampleBuffers);
-        if(available.length===0) return;
-        let best = available[0], bestDiff = Math.abs(notesFreq[best]-notesFreq[note]);
-        for(const n of available){
-          const d = Math.abs(notesFreq[n]-notesFreq[note]);
-          if(d<bestDiff){bestDiff=d;best=n;}
+        if(available.length===0){
+          // on-demand load attempt (fallback): fetch and decode synchronously (best-effort)
+          try{
+            initAudioContext();
+            const flat = convertSharpToFlat(note);
+            const url = `${sampleBaseURL}${pianoFolder}/${flat}.mp3`;
+            const r = await fetch(url);
+            if(!r.ok) return;
+            const ab = await r.arrayBuffer();
+            buffer = await decodeAudioDataAsync(audioContext, ab);
+            sampleBuffers[note] = buffer;
+            rootNote = note;
+          }catch(e){
+            return;
+          }
+        } else {
+          let best = available[0], bestDiff = Math.abs(notesFreq[best]-notesFreq[note]);
+          for(const n of available){
+            const d = Math.abs(notesFreq[n]-notesFreq[note]);
+            if(d<bestDiff){bestDiff=d;best=n;}
+          }
+          buffer = sampleBuffers[best];
+          rootNote = best;
         }
-        buffer = sampleBuffers[best];
-        rootNote = best;
       }
-      const src = audioContext.createBufferSource();
-      src.buffer = buffer;
-      const semitone = Math.log2(notesFreq[note] / notesFreq[rootNote]) * 12;
-      src.playbackRate.value = Math.pow(2, semitone/12);
-      const gain = audioContext.createGain();
-      gain.gain.value = volume;
-      src.connect(gain); gain.connect(audioContext.destination);
       try{
+        const src = audioContext.createBufferSource();
+        src.buffer = buffer;
+        const semitone = Math.log2(notesFreq[note] / notesFreq[rootNote]) * 12;
+        src.playbackRate.value = Math.pow(2, semitone/12);
+        const gain = audioContext.createGain();
+        gain.gain.value = volume;
+        src.connect(gain); gain.connect(audioContext.destination);
         src.start();
-        src.stop(audioContext.currentTime + Math.min(duration/1000, src.buffer.duration/src.playbackRate.value));
-      }catch(e){}
+        // stop after either duration or buffer duration scaled by playbackRate
+        const maxDur = Math.min(duration/1000, src.buffer.duration / Math.max(src.playbackRate.value, 0.0001));
+        try{ src.stop(audioContext.currentTime + maxDur); }catch(e){}
+      }catch(e){ /* ignore play errors */ }
     }
 
-    // ========== Render piano ==========
+    // ========= Render piano ==========
     const pianoDiv = document.getElementById('piano');
     const pianoContainer = document.getElementById('pianoContainer');
     const appWrap = document.getElementById('appWrap');
@@ -332,6 +398,9 @@
         key.style.left = left + 'px';
         key.style.width = keyWidth + 'px';
         key.id = 'key_' + w.note;
+        key.setAttribute('tabindex','0'); // accessible
+        key.setAttribute('role','button');
+        key.setAttribute('aria-pressed','false');
         bindKeyEvents(key, w.note);
         pianoDiv.appendChild(key);
       });
@@ -343,7 +412,8 @@
         if(!b) return;
         const blackNote = b + w.octave;
         if(!pianoNotes.includes(blackNote)) return;
-        const left = Math.round(i * keyWidth + (keyWidth - blackWidth/2));
+        // nicer centering for black keys
+        const left = Math.round(i * keyWidth + keyWidth - blackWidth/2 - (blackWidth>keyWidth?0: (blackWidth/8)));
         const k = document.createElement('div');
         k.className = 'black-key';
         k.dataset.note = blackNote;
@@ -351,54 +421,137 @@
         k.style.left = left + 'px';
         k.style.width = blackWidth + 'px';
         k.id = 'key_' + blackNote;
+        k.setAttribute('tabindex','0');
+        k.setAttribute('role','button');
+        k.setAttribute('aria-pressed','false');
         bindKeyEvents(k, blackNote);
         pianoDiv.appendChild(k);
       });
     }
 
-    // ========== Pointer events (active until release) ==========
+    // ========= Pointer / touch / multi-touch handling ==========
+    // We implement:
+    // - PointerEvent path (preferred, supports multi-touch & pointer capture)
+    // - Fallback: touchstart/touchend with touch id mapping + mouse events
+    const touchToElement = new Map(); // touchId -> element
+    let globalTouchHandlersInstalled = false;
+
     function bindKeyEvents(el, note){
+      // Helper to mark active state
+      function makeActive(element){
+        if(!element) return;
+        element.classList.add('active');
+        element.setAttribute('aria-pressed','true');
+      }
+      function makeInactive(element){
+        if(!element) return;
+        element.classList.remove('active');
+        element.setAttribute('aria-pressed','false');
+      }
+
+      // PointerEvent handlers
       const onPointerDown = (e) => {
-        if (e.isPrimary === false && e.pointerType === 'mouse') return;
-        e.preventDefault();
+        // ignore non-primary mouse buttons
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        try{ e.preventDefault(); }catch(e){}
         if(!isAudioActivated){ flashAlertOnce(); }
-        if(!el.classList.contains('active')) el.classList.add('active');
+        makeActive(el);
         try{ if(el.setPointerCapture) el.setPointerCapture(e.pointerId); }catch(err){}
         playSample(note, 1.0);
       };
-
       const onPointerUp = (e) => {
         try{ if(e && e.preventDefault) e.preventDefault(); }catch(e){}
-        if(el.classList.contains('active')) el.classList.remove('active');
+        makeInactive(el);
         try{ if(e && e.pointerId && el.releasePointerCapture) el.releasePointerCapture(e.pointerId); }catch(err){}
       };
 
-      el.addEventListener('pointerdown', onPointerDown);
-      el.addEventListener('pointerup', onPointerUp);
-      el.addEventListener('pointercancel', onPointerUp);
-      el.addEventListener('lostpointercapture', onPointerUp);
+      // Touch fallback per-element: only used when PointerEvent unsupported.
+      const onTouchStart = (ev) => {
+        // prevent page scroll when tapping piano keys
+        if(ev.cancelable) ev.preventDefault();
+        for(const t of ev.changedTouches){
+          touchToElement.set(t.identifier, el);
+          makeActive(el);
+          playSample(note, 1.0);
+        }
+      };
+      const onMouseDown = (ev) => {
+        if(ev.button !== 0) return;
+        ev.preventDefault();
+        makeActive(el);
+        playSample(note, 1.0);
+      };
+      const onMouseUp = (ev) => {
+        makeInactive(el);
+      };
 
-      // Prevent context menu / selection on long-press for this element
+      // Keyboard accessibility
+      const onKeyDown = (e) => {
+        if(e.key === 'Enter' || e.key === ' '){
+          e.preventDefault();
+          if(!el.classList.contains('active')) {
+            makeActive(el);
+            playSample(note, 1.0);
+          }
+        }
+      };
+      const onKeyUp = (e) => {
+        if(e.key === 'Enter' || e.key === ' '){
+          e.preventDefault();
+          makeInactive(el);
+        }
+      };
+
+      // Attach appropriate handlers
+      if(window.PointerEvent){
+        el.addEventListener('pointerdown', onPointerDown);
+        el.addEventListener('pointerup', onPointerUp);
+        el.addEventListener('pointercancel', onPointerUp);
+        el.addEventListener('lostpointercapture', onPointerUp);
+      } else {
+        // touch & mouse fallback
+        el.addEventListener('touchstart', onTouchStart, {passive:false});
+        el.addEventListener('mousedown', onMouseDown);
+        el.addEventListener('mouseup', onMouseUp);
+        el.addEventListener('mouseleave', onMouseUp);
+        // Install global touchend/ cancel handler once to map changedTouches -> elements
+        if(!globalTouchHandlersInstalled){
+          globalTouchHandlersInstalled = true;
+          document.addEventListener('touchend', (ev) => {
+            for(const t of ev.changedTouches){
+              const el = touchToElement.get(t.identifier);
+              if(el){
+                el.classList.remove('active');
+                el.setAttribute('aria-pressed','false');
+                touchToElement.delete(t.identifier);
+              }
+            }
+          }, {passive:false});
+          document.addEventListener('touchcancel', (ev) => {
+            for(const t of ev.changedTouches){
+              const el = touchToElement.get(t.identifier);
+              if(el){
+                el.classList.remove('active');
+                el.setAttribute('aria-pressed','false');
+                touchToElement.delete(t.identifier);
+              }
+            }
+          }, {passive:false});
+        }
+      }
+
+      // Common handlers
       el.addEventListener('contextmenu', (ev) => ev.preventDefault());
       el.addEventListener('selectstart', (ev) => ev.preventDefault());
       el.addEventListener('dblclick', (e)=> e.preventDefault());
+      el.addEventListener('keydown', onKeyDown);
+      el.addEventListener('keyup', onKeyUp);
 
-      // keyboard accessibility
-      el.addEventListener('keydown', (e) => {
-        if(e.key === 'Enter' || e.key === ' '){
-          e.preventDefault();
-          if(!el.classList.contains('active')) el.classList.add('active');
-          playSample(note, 1.0);
-        }
-      });
-      el.addEventListener('keyup', (e) => {
-        if(e.key === 'Enter' || e.key === ' '){
-          e.preventDefault();
-          if(el.classList.contains('active')) el.classList.remove('active');
-        }
-      });
+      // ensure element is focusable
+      if(!el.hasAttribute('tabindex')) el.setAttribute('tabindex','0');
     }
 
+    // ========== UI helpers ==========
     let alertShown = false;
     function flashAlertOnce(){
       if(alertShown) return;
@@ -411,21 +564,16 @@
     }
 
     // ========== Prevent copy/menu when long-pressing anywhere inside appWrap ==========
-    // If selection/copy/contextmenu originates from inside the app, block it and clear selection.
     document.addEventListener('contextmenu', (e) => {
-      // if target is inside our app wrapper, suppress native context menu
       if (appWrap && appWrap.contains(e.target)) {
         e.preventDefault();
       }
     }, {passive:false});
-
     document.addEventListener('selectstart', (e) => {
       if (appWrap && appWrap.contains(e.target)) {
         e.preventDefault();
       }
     }, {passive:false});
-
-    // on selection change: if selection inside app area, clear it immediately
     document.addEventListener('selectionchange', () => {
       try {
         const sel = document.getSelection();
@@ -438,8 +586,6 @@
         }
       } catch (err) { /* ignore */ }
     });
-
-    // prevent copy event originating from app area
     document.addEventListener('copy', (e) => {
       try {
         const sel = document.getSelection();
@@ -449,13 +595,7 @@
       } catch (err) {}
     }, {passive:false});
 
-    // prevent touch-callout fallback (stop propagation of touchstart inside app)
-    appWrap.addEventListener('touchstart', (e) => {
-      // do not preventDefault here (we want pointer events to work), but stop propagation to browser heuristics
-      e.stopPropagation();
-    }, {passive:true});
-
-    // Also explicitly block contextmenu on sound controls (fix screenshot case)
+    // Also explicitly block contextmenu on sound controls
     const soundToggle = document.getElementById('soundToggle');
     const soundStatus = document.getElementById('soundStatus');
     const soundControl = document.getElementById('soundControl');
@@ -488,12 +628,9 @@
     window.addEventListener('orientationchange', handleResize);
 
     // ========== Prevent double-tap zoom (iOS & others) ==========
-    // Nếu người dùng chạm hai lần liên tiếp nhanh (<300ms), chặn hành động zoom mặc định.
-    // Chú ý: lắng nghe với passive:false để có thể preventDefault().
     (function preventDoubleTapZoom(){
       let lastTouch = 0;
       document.addEventListener('touchend', function(e){
-        // cho phép inputs (nếu có sau này) — không chặn khi target là input/textarea hoặc contentEditable
         const t = e.target;
         if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) {
           lastTouch = Date.now();
@@ -501,48 +638,65 @@
         }
         const now = Date.now();
         if (now - lastTouch <= 300) {
-          e.preventDefault(); // chặn zoom
+          if(e.cancelable) e.preventDefault();
         }
         lastTouch = now;
       }, {passive:false});
     })();
 
-    // ========== Sound activation (iOS friendly) ==========
+    // ========== Sound activation & toggle (iOS friendly) ==========
+    // Button acts as: first click activates audio system (on iOS resume + test play),
+    // subsequent clicks toggle mute/unmute.
     soundToggle.addEventListener('click', async ()=>{
-      if(isAudioActivated) return;
-      soundToggle.disabled = true;
-      document.getElementById('soundIcon').textContent = '⏳';
-      soundStatus.textContent = 'Đang kích hoạt...';
-      try{
-        initAudioContext();
-        const testUrl = `${sampleBaseURL}${pianoFolder}/E3.mp3`;
-        const tAudio = new Audio(testUrl);
-        tAudio.volume = 0.1;
-        await new Promise((resolve,reject)=>{
-          const onCan = async ()=> {
-            try {
-              await tAudio.play();
-              setTimeout(()=>{ tAudio.pause(); tAudio.currentTime=0; resolve(); }, 200);
-            } catch(err){ reject(err); }
-          };
-          tAudio.addEventListener('canplaythrough', onCan, {once:true});
-          tAudio.addEventListener('error', ()=>reject(new Error('Không tải được test audio')), {once:true});
-          tAudio.load();
-          setTimeout(()=>reject(new Error('Timeout')),4000);
-        });
-        try{ await audioContext.resume(); }catch(e){}
-        isAudioActivated = true; isMuted = false;
-        soundToggle.classList.remove('muted');
-        document.getElementById('soundIcon').textContent = '🔊';
-        soundStatus.textContent = 'Bật';
-        preloadPiano().then(()=>{/* done */});
-      }catch(err){
-        soundToggle.disabled = false;
-        document.getElementById('soundIcon').textContent = '🔇';
-        soundStatus.textContent = 'Thử lại';
-        console.warn('Kích hoạt audio thất bại', err);
-        alert('⚠️ Không thể kích hoạt âm thanh.\n\nLỗi: ' + (err && err.message ? err.message : err));
+      // If not activated yet, run activation flow
+      if(!isAudioActivated){
+        soundToggle.disabled = true;
+        document.getElementById('soundIcon').textContent = '⏳';
+        soundStatus.textContent = 'Đang kích hoạt...';
+        try{
+          initAudioContext();
+          // small test play to satisfy iOS autoplay restrictions: try to play a tiny mp3 via <audio>
+          const testUrl = `${sampleBaseURL}${pianoFolder}/E3.mp3`;
+          const tAudio = new Audio(testUrl);
+          tAudio.volume = 0.08;
+          await new Promise((resolve,reject)=>{
+            const onCan = async ()=> {
+              try {
+                await tAudio.play();
+                setTimeout(()=>{ try{ tAudio.pause(); }catch(e){}; tAudio.currentTime=0; resolve(); }, 200);
+              } catch(err){ reject(err); }
+            };
+            tAudio.addEventListener('canplaythrough', onCan, {once:true});
+            tAudio.addEventListener('error', ()=>reject(new Error('Không tải được test audio')), {once:true});
+            tAudio.load();
+            setTimeout(()=>reject(new Error('Timeout')),4000);
+          });
+          try{ await audioContext.resume(); }catch(e){}
+          isAudioActivated = true;
+          isMuted = false;
+          soundToggle.classList.remove('muted');
+          document.getElementById('soundIcon').textContent = '🔊';
+          soundStatus.textContent = 'Bật';
+          soundToggle.disabled = false;
+          soundToggle.setAttribute('aria-pressed','true');
+          // preload in background (throttled)
+          preloadPiano(5).then(()=>{/* done */});
+        }catch(err){
+          soundToggle.disabled = false;
+          document.getElementById('soundIcon').textContent = '🔇';
+          soundStatus.textContent = 'Thử lại';
+          console.warn('Kích hoạt audio thất bại', err);
+          alert('⚠️ Không thể kích hoạt âm thanh.\n\nLỗi: ' + (err && err.message ? err.message : err));
+        }
+        return;
       }
+
+      // If already activated -> toggle mute/unmute
+      isMuted = !isMuted;
+      soundToggle.classList.toggle('muted', isMuted);
+      document.getElementById('soundIcon').textContent = isMuted ? '🔇' : '🔊';
+      soundStatus.textContent = isMuted ? 'Tắt' : 'Bật';
+      soundToggle.setAttribute('aria-pressed', String(!isMuted));
     });
 
     // ========== Init on load ==========
@@ -550,8 +704,13 @@
       applyOrientationClass();
       try{
         initAudioContext();
+        // Start preload eagerly except on some iOS devices where early resume may be blocked:
+        // We still preload but only decode when activation happens. We keep network + decode behavior
+        // inside preloadPiano, and it will be triggered after user activates (we call preload on activate).
+        // To keep responsiveness, we attempt a background preload if not iOS.
         if(!/iP(hone|ad|od).*OS/.test(navigator.userAgent)){
-          preloadPiano();
+          // attempt preload but audioContext may be suspended; decodeAudioData will still work after resume
+          preloadPiano(5);
         }
       }catch(e){}
     });
