@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Đàn Piano Electric + Transpose Semitone</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); margin:0; padding:0; min-height:100vh; }
+    .container { width:100%; max-width:880px; margin:auto; position:relative; padding:28px 0 14px;}
+    h1 { color: #FFD700; text-align: center; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); margin: 0 0 10px 0;}
+    .sound-control {
+      position: absolute; top: 10px; right: 14px;
+      display: flex; flex-direction: column; align-items: center; z-index: 100;
+    }
+    .sound-toggle { background: linear-gradient(145deg, #2ac7ec, #1594bb); color: white; border: none;
+      border-radius: 50%; width: 36px; height: 36px; font-size: 19px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.22);
+      transition: all 0.2s; display: flex; align-items: center; justify-content: center;}
+    .sound-toggle.muted { background: linear-gradient(145deg, #f44336, #d32f2f);}
+    .sound-toggle:active { transform: scale(0.96); }
+    .sound-status { color: white; font-size: 12px; font-weight: bold; margin-top: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.14); }
+
+    .transpose-control { display:flex; justify-content:center; align-items:center; margin:12px 0 17px 0; gap:15px;}
+    .transpose-btn { background: linear-gradient(135deg, #2ac7ec, #7B1FA2); color: #fff; border:none; border-radius: 7px; padding:4px 14px; font-size:17px; font-weight:bold; cursor:pointer; transition:all 0.14s;}
+    .transpose-btn:active {transform:scale(0.98);}
+    .transpose-reset { cursor:pointer; color:#FFD700; text-decoration:underline;}
+    .transpose-status { color:#FFD700; font-size:15px; font-weight:bold; letter-spacing:1px;}
+    .piano-container { background: rgba(0,0,0,0.27); backdrop-filter: blur(8px); border-radius: 10px; padding: 10px; box-shadow: 0 9px 28px rgba(0,0,0,0.39); max-width: 820px; margin: auto; }
+    .piano { position: relative; height: 150px; width: 1260px; margin: 0 auto;}
+    .white-key { position: absolute; width: 33px; height: 150px; background: linear-gradient(to bottom, #fff 0%, #ececec 100%); border: 2px solid #222; border-radius: 0 0 5px 5px; cursor: pointer;
+      user-select: none; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 4px; font-size: 9px; color: #555; font-weight: bold; transition: all 0.06s;}
+    .white-key.active { background: linear-gradient(137deg, #2ac7ec 0%, #76e2ff 100%); color: #1d8a95;}
+    .white-key:active { background: linear-gradient(137deg, #b3e5fc 0%, #2ac7ec 100%);}
+    .black-key { position: absolute; width: 22px; height: 89px; background: linear-gradient(to bottom, #444 0%, #091a21 100%); border: 1px solid #111; border-radius: 0 0 4px 4px; cursor: pointer;
+      user-select: none; z-index: 9; color: white; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 3px; font-size: 7px; font-weight: bold;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.52); transition: all 0.05s;}
+    .black-key.active { background: linear-gradient(137deg, #2ac7ec 0%, #76e2ff 100%); color: #1d8a95;}
+    .black-key:active { background: linear-gradient(137deg, #b3e5fc 0%, #2ac7ec 100%);}
+    .created-by-footer {
+      text-align: center;
+      color: #fff;
+      font-size: 15px;
+      opacity: 0.91;
+      margin: 28px auto 14px auto;
+      width: 100%;
+    }
+    .loading-status {
+      text-align: center; color: #FFD700; font-size: 13px; margin: 7px 0 10px 0; font-weight: bold;
+    }
+    #alert { 
+      text-align: center; 
+      color: #f44336; 
+      background: #fff2f2;
+      border-radius: 7px; 
+      font-size: 14px;
+      font-weight:bold;
+      margin: 11px auto 0 auto; 
+      max-width: 320px; 
+      padding: 8px 11px;
+      display: none;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      border: 1px solid #ffd9d9;
+    }
+    @media (max-width: 1290px){
+      .piano { width:98vw; max-width:1260px;}
+    }
+    @media (max-width: 900px){
+      .piano-container{max-width:99vw;}
+      .piano{width:930px;}
+    }
+    @media (max-width: 1000px){
+      .container{padding:13px 0;}
+    }
+    @media (max-width: 700px){
+      .piano{width:650px;}
+      .piano-container{padding:3px;}
+    }
+    @media (max-width: 650px){
+      .piano{width:99vw;}
+      .container{padding:6px 0;}
+      .piano-container{padding:1px;}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sound-control">
+      <button class="sound-toggle muted" id="soundToggle">
+        <span id="soundIcon">🔇</span>
+      </button>
+      <span class="sound-status" id="soundStatus">Tắt âm</span>
+    </div>
+    <h1>🎹 Đàn Piano Electric</h1>
+    <!-- Transpose Controls -->
+    <div class="transpose-control">
+      <button class="transpose-btn" id="transposeDown">-1</button>
+      <span class="transpose-status" id="transposeStatus">Transpose: 0</span>
+      <button class="transpose-btn" id="transposeUp">+1</button>
+      <span class="transpose-reset" id="transposeReset" title="reset">[về 0]</span>
+    </div>
+    <div class="loading-status" id="loadingStatus">⏳ Đang tải nhạc cụ...</div>
+    <div id="alert"></div>
+    <div class="piano-container">
+      <div class="piano" id="piano"></div>
+    </div>
+  </div>
+  <div class="created-by-footer">Created by Minh Nhựt</div>
+  <script>
+    // ----------- Dữ liệu và trạng thái ----------
+    const sampleBaseURL = "https://raw.githubusercontent.com/Nhut11790/nhut11790.github.io/main/tieng/";
+    const sampleInstrument = { name: '🎹 Electric Piano 2', folder: 'electric_piano_2-mp3' };
+
+    // Tất cả notes mà sample có thể có (full range) cho phép trans từ -12 đến +12 vẫn đủ
+    const chromatic = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+    function noteList(octaveFrom, octaveTo) {
+      // tạo list kiểu ["C2","C#2",...,"B6"]
+      let out = [];
+      for (let oct = octaveFrom; oct <= octaveTo; oct++) {
+        for (let i = 0; i < chromatic.length; i++) {
+          out.push(chromatic[i]+oct);
+        }
+      }
+      return out;
+    }
+    const pianoNotes = [
+      'C3','C#3','D3','D#3','E3','F3','F#3','G3','G#3','A3','A#3','B3',
+      'C4','C#4','D4','D#4','E4','F4','F#4','G4','G#4','A4','A#4','B4',
+      'C5','C#5','D5','D#5','E5','F5','F#5','G5','G#5','A5'
+    ];
+    const allNotes = noteList(2,6); // covers C2~B6
+    // Freq map cho mọi note
+    const notesFreq = (() => {
+      let freq = {};
+      for(let o=2;o<=6;o++) {
+        for(let i=0;i<chromatic.length;i++) {
+          // Công thức MIDI: 440Hz*(2^((midi-69)/12)) với midi = 12*(octave+1)+i
+          let midi = chromatic.length*(o+1)+i;
+          freq[chromatic[i]+o]=440*Math.pow(2,(midi-69)/12);
+        }
+      }
+      return freq;
+    })();
+
+    let audioContext = null;
+    let isMuted = true, isAudioActivated = false;
+    let sampleBuffers = {};
+    let hasPreload = false;
+    let transpose = 0; // -12 đến +12
+
+    // ========== AUDIO ==========
+    function initAudioContext() {
+      if (!audioContext) { audioContext = new (window.AudioContext || window.webkitAudioContext)(); }
+      if (audioContext.state === 'suspended') audioContext.resume();
+    }
+    function convertSharpToFlat(note) {
+      const sharpToFlat = { 'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb' };
+      for (let sharp in sharpToFlat) {
+        if (note.startsWith(sharp))
+          return note.replace(sharp, sharpToFlat[sharp]);
+      }
+      return note;
+    }
+    async function preloadSamples() {
+      let notesList = allNotes, folder = sampleInstrument.folder;
+      let successCount = 0;
+      document.getElementById('loadingStatus').textContent = `⏳ Đang tải ${sampleInstrument.name}...`;
+      let promises = notesList.map(note => {
+        let flatNote = convertSharpToFlat(note);
+        let fileName = flatNote + '.mp3';
+        let url = `${sampleBaseURL}${folder}/${fileName}`;
+        return fetch(url)
+          .then(res => res.ok ? res.arrayBuffer() : null)
+          .then(buf => buf ? audioContext.decodeAudioData(buf) : null)
+          .then(audioBuf => { 
+            if(audioBuf) { sampleBuffers[note] = audioBuf; successCount++; 
+              document.getElementById('loadingStatus').textContent = 
+                `⏳ Đang tải ${sampleInstrument.name}... (${successCount}/${notesList.length})`;
+            }
+          })
+          .catch(()=>{});
+      });
+      await Promise.all(promises);
+      if (successCount === 0) {
+        document.getElementById('loadingStatus').textContent = `❌ Không thể tải nhạc cụ ${sampleInstrument.name}`;
+      } else {
+        document.getElementById('loadingStatus').textContent = `✅ Đã tải ${sampleInstrument.name}`;
+        setTimeout(() => {document.getElementById('loadingStatus').style.display = 'none';},1300);
+      }
+      hasPreload = true;
+    }
+    async function ensureSamples() {
+      initAudioContext();
+      if (!hasPreload) {
+        document.getElementById('loadingStatus').style.display = 'block';
+        await preloadSamples();
+      }
+    }
+
+    // ========== THÔNG BÁO ===========
+    function showAlert(msg) {
+      const alertBox = document.getElementById("alert");
+      alertBox.textContent = msg;
+      alertBox.style.display = "block";
+      setTimeout(() => { alertBox.style.display = "none"; }, 2100);
+    }
+
+    // ========== RENDER PIANO ===========
+    function renderPiano() {
+      const pianoDiv = document.getElementById('piano');
+      pianoDiv.innerHTML = '';
+      const whiteOrder = ['C','D','E','F','G','A','B'];
+      const blackMap = {
+        'C': 'C#','D': 'D#','F': 'F#','G': 'G#','A': 'A#'
+      };
+      let whites = [], whitesIndex = {};
+      pianoNotes.forEach(note => {
+        let m = note.match(/^([A-G])([#]?)(\d)$/);
+        if (m && !m[2]) { whitesIndex[note]=whites.length; whites.push({note: note, octave: m[3], key: m[1]}); }
+      });
+      // Phím trắng
+      whites.forEach((data, i) => {
+        let left = i * 33;
+        const key = document.createElement('div');
+        key.className = 'white-key';
+        key.dataset.note = data.note;
+        key.textContent = data.note;
+        key.style.left = left + 'px';
+        key.id = 'key_'+data.note;
+        key.tabIndex = 0;
+        const playKeyNote = () => playNote(data.note, key);
+        key.addEventListener('mousedown', () => { key.classList.add('active'); playKeyNote(); });
+        key.addEventListener('touchstart', (e) => { e.preventDefault(); key.classList.add('active'); playKeyNote(); });
+        key.addEventListener('mouseup', () => { key.classList.remove('active'); });
+        key.addEventListener('mouseleave', () => { key.classList.remove('active'); });
+        key.addEventListener('touchend', () => { key.classList.remove('active'); });
+        pianoDiv.appendChild(key);
+      });
+      // Phím đen
+      whites.forEach((data, i) => {
+        let bKey = blackMap[data.key];
+        if (!bKey) return;
+        let blackNote = bKey + data.octave;
+        if (!pianoNotes.includes(blackNote)) return;
+        let left = (i * 33) + 22;
+        const key = document.createElement('div');
+        key.className = 'black-key';
+        key.dataset.note = blackNote;
+        key.textContent = blackNote;
+        key.style.left = left + 'px';
+        key.id = 'key_'+blackNote;
+        key.tabIndex = 0;
+        const playKeyNote = () => playNote(blackNote, key);
+        key.addEventListener('mousedown', () => { key.classList.add('active'); playKeyNote(); });
+        key.addEventListener('touchstart', (e) => { e.preventDefault(); key.classList.add('active'); playKeyNote(); });
+        key.addEventListener('mouseup', () => { key.classList.remove('active'); });
+        key.addEventListener('mouseleave', () => { key.classList.remove('active'); });
+        key.addEventListener('touchend', () => { key.classList.remove('active'); });
+        pianoDiv.appendChild(key);
+      });
+    }
+
+    // ========== PHÁT ÂM ===========
+    function transposeNote(note, semitone) {
+      // note như "C3", semitone là số bán âm: +1 = lên 1 bán âm
+      // Map note tới chỉ số, rồi cộng/trừ semitone, rồi lấy về note mới
+      let m = note.match(/^([A-G]#?)(\d)$/);
+      if (!m) return note;
+      let noteName = m[1], octave = parseInt(m[2]);
+      let ni = chromatic.indexOf(noteName);
+      if (ni < 0) return note;
+
+      let idx = (octave * 12) + ni + semitone;
+      let newOctave = Math.floor(idx / 12);
+      let newNi = ((idx % 12) + 12) % 12; // handle negatives
+      let newNote = chromatic[newNi] + newOctave;
+      if (allNotes.indexOf(newNote) >= 0) return newNote;
+      // Nếu ngoài range sample thì trả về note gốc
+      return note;
+    }
+
+    async function playSample(note, volume=1.0, duration=1200) {
+      if (!audioContext || !isAudioActivated) return;
+      let sampleBuffer = sampleBuffers[note];
+      let rootNote = note;
+      if (!sampleBuffer) {
+        const availableNotes = Object.keys(sampleBuffers).filter(n => sampleBuffers[n]);
+        let minDiff = Infinity, bestNote=null;
+        for(const avail of availableNotes){
+          let diff = Math.abs(notesFreq[avail] - notesFreq[note]);
+          if(diff < minDiff){minDiff=diff;bestNote=avail;}
+        }
+        if (!bestNote) return;
+        sampleBuffer = sampleBuffers[bestNote];
+        rootNote = bestNote;
+      }
+      const src = audioContext.createBufferSource();
+      src.buffer = sampleBuffer;
+      let semitone = Math.log2(notesFreq[note] / notesFreq[rootNote]) * 12;
+      src.playbackRate.value = Math.pow(2, semitone / 12);
+      const gainNode = audioContext.createGain();
+      gainNode.gain.value = volume;
+      gainNode.connect(audioContext.destination);
+      src.connect(gainNode);
+      src.start();
+      src.stop(audioContext.currentTime + Math.min(duration/1000, src.buffer.duration/src.playbackRate.value));
+    }
+    async function playNote(note, keyElement) {
+      if (!isAudioActivated) { showAlert("Bạn cần bật âm bằng nút 🔇 trước khi chơi đàn!"); return; }
+      initAudioContext();
+      if (keyElement) {
+        keyElement.classList.add('active');
+        setTimeout(() => { keyElement.classList.remove('active'); }, 200);
+      }
+      await ensureSamples();
+      let tNote = transposeNote(note, transpose);
+      playSample(tNote, 1.0, 1110);
+    }
+
+    // Transpose UI
+    function setTransposeUI() {
+      let status = document.getElementById('transposeStatus');
+      let txt = "Transpose: ";
+      if (transpose > 0) txt += "+"+transpose;
+      else if (transpose < 0) txt += transpose;
+      else txt += "0";
+      status.textContent = txt;
+    }
+    // Chỉ trong [-12, +12]
+    document.addEventListener('DOMContentLoaded', ()=>{
+      document.getElementById('transposeUp').addEventListener('click', ()=>{
+        if(transpose<12){ transpose += 1; setTransposeUI();}
+      });
+      document.getElementById('transposeDown').addEventListener('click', ()=>{
+        if(transpose>-12){transpose -= 1; setTransposeUI();}
+      });
+      document.getElementById('transposeReset').addEventListener('click', ()=>{
+        transpose = 0; setTransposeUI();
+      });
+      setTransposeUI();
+    });
+
+    // Nút âm thanh
+    const soundToggle = document.getElementById('soundToggle');
+    const soundIcon = document.getElementById('soundIcon');
+    const soundStatus = document.getElementById('soundStatus');
+    soundToggle.addEventListener('click', async () => {
+      if (isAudioActivated) return;
+      soundToggle.disabled = true;
+      soundIcon.textContent = '⏳';
+      soundStatus.textContent = 'Đang kích hoạt...';
+      try {
+        initAudioContext();
+        const testAudio = new Audio('https://raw.githubusercontent.com/nhut990/files/refs/heads/main/tieng/E3_active_audio.mp3');
+        testAudio.volume = 0.3;
+        await new Promise((resolve,reject)=>{
+          testAudio.addEventListener('canplaythrough',()=>{
+            testAudio.play().then(()=>{
+              setTimeout(()=>{
+                testAudio.pause();
+                testAudio.currentTime=0;resolve();
+              },250);
+            }).catch(reject);
+          },{once:true});
+          testAudio.addEventListener('error',reject,{once:true});
+          testAudio.load();
+          setTimeout(()=>reject(new Error('Timeout')),4000);
+        });
+        await audioContext.resume();
+        isAudioActivated = true; isMuted = false;
+        soundToggle.classList.remove('muted');
+        soundToggle.style.opacity = '0.75';
+        soundToggle.style.cursor = 'not-allowed';
+        soundIcon.textContent = '🔊';
+        soundStatus.textContent = 'Âm thanh bật';
+      } catch (error) {
+        soundToggle.disabled = false;
+        soundIcon.textContent = '🔇';
+        soundStatus.textContent = 'Thử lại';
+        alert('⚠️ Không thể kích hoạt âm thanh.\n\nLỗi: ' + error.message);
+      }
+    });
+
+    // ======== Khi load trang ========
+    window.addEventListener('load', async () => {
+      initAudioContext();
+      await ensureSamples();
+      renderPiano();
+      document.getElementById('loadingStatus').style.display = 'none';
+    });
+  </script>
+</body>
+</html>
