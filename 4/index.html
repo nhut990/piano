@@ -2,12 +2,31 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Đàn Piano 72 phím (C0, kéo bàn phím bằng thanh dài phía dưới)</title>
+  <meta name="viewport" content="width,initial-scale=1.0">
+  <title>🎹 Đàn Piano 72 phím (C2-&gt;B7)</title>
   <style>
     body { font-family: Arial, sans-serif; background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); margin:0; padding:0; min-height:100vh; }
     .container { width:100%; max-width:1600px; margin:auto; position:relative; padding:28px 0 14px;}
     h1 { color: #FFD700; text-align: center; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); margin: 0 0 10px 0;}
+
+    .control-bar {
+      text-align: center; margin-bottom: 9px;
+      display: flex; justify-content: center; gap:14px; align-items:center; flex-wrap: wrap;
+    }
+
+    .size-label {
+      color: #fff; font-weight: bold; font-size: 15px; margin-right:3px;
+    }
+    .size-slider {
+      width: 120px; height: 24px;
+    }
+    .fullscreen-btn {
+      background: linear-gradient(137deg,#2ac7ec,#2caf97); color: #fff; border: none; border-radius: 8px; padding: 4px 13px;
+      font-size: 15px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.11); transition: all 0.13s;
+    }
+    .fullscreen-btn:active { transform: scale(0.97);}
+    .fullscreen-btn.active { background: linear-gradient(137deg,#43a047,#2ac7ec); color:#FFD700;}
+
     .sound-control { position: absolute; top: 10px; right: 14px; display: flex; flex-direction: column; align-items: center; z-index: 100; }
     .sound-toggle { background: linear-gradient(145deg, #2ac7ec, #1594bb); color: white; border: none;
       border-radius: 50%; width: 36px; height: 36px; font-size: 19px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.22);
@@ -15,24 +34,6 @@
     .sound-toggle.muted { background: linear-gradient(145deg, #f44336, #d32f2f);}
     .sound-toggle:active { transform: scale(0.96); }
     .sound-status { color: white; font-size: 12px; font-weight: bold; margin-top: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.14); }
-    .record-controls {
-      margin: 5px auto 8px auto; display: flex; justify-content: center; gap: 10px; align-items: center;
-    }
-    .rec-btn, .play-btn, .download-btn, .clear-btn {
-      background: linear-gradient(137deg,#2ac7ec,#1594bb); color: #fff; border: none; border-radius: 8px; padding: 5px 10px;
-      font-size: 14px; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.11);
-      cursor: pointer; transition: all 0.13s;
-      display: flex; align-items: center; gap:3px; min-width: 72px; min-height: 28px; opacity:1;
-    }
-    .rec-btn.active { background: linear-gradient(137deg,#FFD700,#ffeb90); color:#1e7e99;}
-    .play-btn.active { background: linear-gradient(137deg,#43a047,#2ac7ec); color:#fff;}
-    .rec-btn:active,.play-btn:active,.download-btn:active,.clear-btn:active { transform: scale(0.97);}
-    .clear-btn { background: linear-gradient(125deg,#2ac7ec,#a81be6); color:#fff;}
-    .download-btn { background: linear-gradient(137deg,#2ac7ec,#7B1FA2); color:#fff;}
-    .play-btn[disabled], .download-btn[disabled], .clear-btn[disabled]{ opacity: 0.49; cursor: not-allowed; }
-    .record-status { font-size:14px;font-weight: bold; color:#fff;margin-left:10px; text-shadow:0 2px 7px rgba(22,96,215,0.13);}
-    .record-status.active { color: #FFD700;}
-    .play-remaining { margin-left:8px; font-size:13px; color:#90eeff; font-weight:bold;}
     .loading-status { text-align: center; color: #FFD700; font-size: 13px; margin: 7px 0 10px 0; font-weight: bold; }
     #alert { text-align: center; color: #f44336; background: #fff2f2; border-radius: 7px; font-size: 14px; font-weight:bold;
       margin: 11px auto 0 auto; max-width: 320px; padding: 8px 11px; display: none; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border: 1px solid #ffd9d9;
@@ -41,79 +42,67 @@
       background: rgba(0,0,0,0.27); backdrop-filter: blur(8px);
       border-radius: 10px; padding: 10px; box-shadow: 0 9px 28px rgba(0,0,0,0.39);
       max-width: 1540px; margin: auto;
-      overflow-x: visible;
+      overflow-x: auto;
+      transition: all 0.2s;
     }
     .piano {
       position: relative; height: 180px; min-width: 2376px; margin: 0 auto;
       user-select: none;
+      transition: all 0.25s;
     }
-    .white-key { position: absolute; width: 33px; height: 180px; background: linear-gradient(to bottom, #fff 0%, #ececec 100%);
-      border: 2px solid #222; border-radius: 0 0 6px 6px; cursor: pointer; user-select: none;
-      display: flex; align-items: flex-end; justify-content: center; padding-bottom: 4px; font-size: 9px; color: #555; font-weight: bold; transition: all 0.06s;}
+    .white-key { position: absolute; background: linear-gradient(to bottom, #fff 0%, #ececec 100%);
+      border: 2px solid #222; border-radius: 0 0 6px 6px; cursor: pointer; user-select: none; display: flex;
+      align-items: flex-end; justify-content: center; font-size: 9px; color: #555; font-weight: bold; transition: all 0.06s;}
     .white-key.active { background: linear-gradient(137deg, #2ac7ec 0%, #76e2ff 100%); color: #1d8a95;}
     .white-key:active { background: linear-gradient(137deg, #b3e5fc 0%, #2ac7ec 100%);}
-    .black-key { position: absolute; width: 22px; height: 110px; background: linear-gradient(to bottom, #444 0%, #091a21 100%);
+    .black-key { position: absolute; background: linear-gradient(to bottom, #444 0%, #091a21 100%);
       border: 1px solid #111; border-radius: 0 0 4px 4px; cursor: pointer; user-select: none; z-index: 9; color: white;
-      display: flex; align-items: flex-end; justify-content: center; padding-bottom: 3px; font-size: 7px; font-weight: bold;
+      display: flex; align-items: flex-end; justify-content: center; font-size: 7px; font-weight: bold;
       box-shadow: 0 2px 4px rgba(0,0,0,0.52); transition: all 0.05s;}
     .black-key.active { background: linear-gradient(137deg, #2ac7ec 0%, #76e2ff 100%); color: #1d8a95;}
     .black-key:active { background: linear-gradient(137deg, #b3e5fc 0%, #2ac7ec 100%);}
-    /* Thanh cuộn dưới piano (chiều ngang bằng piano, không thumb) */
-    .scrollbar-zone {
-      width: 100%; max-width: 1540px; margin: 0 auto;
-      background: #383eab; border-radius: 9px; box-shadow: 0 2px 12px rgba(0,0,0,0.20);
-      padding: 0 18px 0 18px; margin-top: -2px; margin-bottom: 16px;
-      display: flex; flex-direction: column; align-items: center;
-    }
-    .scrollbar-label {
-      color: #fff; font-weight: bold; letter-spacing: 1.1px; font-size: 16px; padding-bottom: 6px; padding-top: 6px;
-      text-align: center;
-    }
-    .scrollbar-bar {
-      width: 98%;
-      height: 22px;
-      margin-bottom: 7px;
-      margin-top: 2px;
-      background: linear-gradient(90deg,#667eea 0%,#8ae2fa 100%);
-      border-radius: 12px;
-      position: relative;
-      display: flex; align-items: center;
-      cursor: pointer; /* cho biết có thể chạm/kéo */
-      touch-action: pan-x;
-      box-shadow: 0 1px 8px rgba(0,0,0,0.06);
-    }
     .created-by-footer { text-align: center; color: #fff; font-size: 15px; opacity: 0.91; margin: 29px auto 14px auto; width: 100%; }
+
+    /* Fullscreen ngang khi body có class .landscape */
+    body.landscape .piano-container {
+      max-width: 100vw;
+      height: 220px;
+      min-height: 120px;
+    }
+    body.landscape .piano {
+      width: 99vw !important; min-width: 0; max-width: none;
+      height: 180px;
+    }
+    body.landscape {
+      min-height: 100vw;
+      background: linear-gradient(90deg,#667eea 0%,#764ba2 100%);
+    }
+
+    /* Điều chỉnh responsive, giữ phím tràn ngang khi nhỏ */
     @media (max-width: 2400px){
       .piano { width:2392px; max-width:98vw;}
-      .scrollbar-zone{max-width:98vw;}
     }
     @media (max-width: 1900px){
       .piano { width:1910px;}
-      .scrollbar-zone{max-width:100vw;}
     }
     @media (max-width: 1290px){
-      .piano { width:98vw; max-width:1260px;}
-      .scrollbar-zone{max-width:99vw;}
+      .piano { width:1260px;}
     }
     @media (max-width: 900px){
       .piano-container{max-width:99vw;}
-      .scrollbar-zone{max-width:99vw;}
       .piano{width:930px;}
     }
     @media (max-width: 1000px){
       .container{padding:13px 0;}
-      .scrollbar-zone{max-width:99vw;}
     }
     @media (max-width: 700px){
       .piano{width:650px;}
-      .scrollbar-zone{max-width:98vw;}
       .piano-container{padding:3px;}
     }
     @media (max-width: 650px){
       .piano{width:99vw;}
       .container{padding:6px 0;}
       .piano-container{padding:1px;}
-      .scrollbar-zone{max-width:98vw;}
     }
   </style>
 </head>
@@ -125,31 +114,23 @@
       </button>
       <span class="sound-status" id="soundStatus">Tắt âm</span>
     </div>
-    <h1>🎹 Đàn Piano 72 phím (C0, kéo bàn phím bằng thanh dài riêng bên dưới)</h1>
-    <div class="record-controls">
-      <button class="rec-btn" id="recordBtn"><span id="recIcon">⏺️</span> Ghi âm</button>
-      <button class="play-btn" id="playBtn" disabled><span id="playIcon">▶️</span> Phát lại</button>
-      <button class="download-btn" id="downloadBtn" disabled><span id="downIcon">💾</span> Tải JSON</button>
-      <button class="clear-btn" id="clearBtn" disabled><span id="clearIcon">🗑️</span> Xóa</button>
-      <span class="record-status" id="recordStatus">Chưa ghi âm</span>
-      <span class="play-remaining" id="playRemaining"></span>
+    <h1>🎹 Đàn Piano 72 phím (C2-&gt;B7)</h1>
+    <!-- Control bar for fullscreen and key size -->
+    <div class="control-bar">
+      <span class="size-label">Kích thước phím:</span>
+      <input type="range" min="18" max="54" value="33" step="1" class="size-slider" id="keySizeSlider">
+      <button class="fullscreen-btn" id="fullscreenBtn">Chế độ ngang</button>
     </div>
     <div class="loading-status" id="loadingStatus">⏳ Đang tải Piano...</div>
     <div id="alert"></div>
     <div class="piano-container">
       <div class="piano" id="piano"></div>
     </div>
-    <div class="scrollbar-zone" id="scrollBarZone">
-      <div class="scrollbar-label">Chạm vào đây để kéo bàn phím qua lại</div>
-      <div class="scrollbar-bar" id="scrollBarBar"></div>
-    </div>
   </div>
   <div class="created-by-footer">Created by Minh Nhựt</div>
-
   <script>
+    // Mảng nốt trắng từ C2 đến B7
     const WHITE_NOTES = [
-      "C0","D0","E0","F0","G0","A0","B0",
-      "C1","D1","E1","F1","G1","A1","B1",
       "C2","D2","E2","F2","G2","A2","B2",
       "C3","D3","E3","F3","G3","A3","B3",
       "C4","D4","E4","F4","G4","A4","B4",
@@ -158,10 +139,6 @@
       "C7","D7","E7","F7","G7","A7","B7"
     ];
     const BLACK_NOTES_LAYOUT = [
-      {note:"C#0",pos:"C0"}, {note:"D#0",pos:"D0"},
-      {note:"F#0",pos:"F0"}, {note:"G#0",pos:"G0"}, {note:"A#0",pos:"A0"},
-      {note:"C#1",pos:"C1"}, {note:"D#1",pos:"D1"},
-      {note:"F#1",pos:"F1"}, {note:"G#1",pos:"G1"}, {note:"A#1",pos:"A1"},
       {note:"C#2",pos:"C2"}, {note:"D#2",pos:"D2"},
       {note:"F#2",pos:"F2"}, {note:"G#2",pos:"G2"}, {note:"A#2",pos:"A2"},
       {note:"C#3",pos:"C3"}, {note:"D#3",pos:"D3"},
@@ -175,9 +152,17 @@
       {note:"C#7",pos:"C7"}, {note:"D#7",pos:"D7"},
       {note:"F#7",pos:"F7"}, {note:"G#7",pos:"G7"}, {note:"A#7",pos:"A7"},
     ];
-    const whiteKeyWidth = 33, blackKeyWidth = 22;
-    let whiteKeyPosX = {};
-    WHITE_NOTES.forEach((note,i)=>{whiteKeyPosX[note]=i*whiteKeyWidth;});
+
+    // Biến cho control kích thước/key size
+    let whiteKeyWidth = 33, blackKeyWidth = 22, whiteKeyHeight = 180, blackKeyHeight = 110;
+    function getWhiteKeyPosX() {
+      let obj = {};
+      WHITE_NOTES.forEach((note,i)=>{obj[note]=i*whiteKeyWidth;});
+      return obj;
+    }
+
+    let whiteKeyPosX = getWhiteKeyPosX();
+
     const pianoNotesAll = WHITE_NOTES.concat(BLACK_NOTES_LAYOUT.map(n=>n.note)).sort((a,b) => {
       function noteMidi(note) {
         const ORDER = {"C":0,"C#":1,"D":2,"D#":3,"E":4,"F":5,"F#":6,"G":7,"G#":8,"A":9,"A#":10,"B":11};
@@ -199,14 +184,6 @@
     let isMuted = true, isAudioActivated = false;
     let sampleBuffers = {};
     let hasPreload = false;
-    let isRecording = false;
-    let recordStart = 0;
-    let noteRecords = [];
-    let playbackTimeouts = [];
-    let isPlayingBack = false;
-    let playbackStartTime = 0;
-    let playbackEndTime = 0;
-    let playbackTimer = null;
     function initAudioContext() {
       if (!audioContext) { audioContext = new (window.AudioContext || window.webkitAudioContext)(); }
       if (audioContext.state === 'suspended') audioContext.resume();
@@ -259,8 +236,12 @@
       setTimeout(() => { alertBox.style.display = "none"; }, 2100);
     }
     function renderPiano() {
+      whiteKeyPosX = getWhiteKeyPosX();
       const pianoDiv = document.getElementById('piano');
       pianoDiv.innerHTML = '';
+      // Đặt width/height động cho piano
+      pianoDiv.style.height = whiteKeyHeight + "px";
+      pianoDiv.style.width = (WHITE_NOTES.length*whiteKeyWidth) + "px";
       WHITE_NOTES.forEach((note, i) => {
         const key = document.createElement('div');
         key.className = 'white-key';
@@ -269,6 +250,10 @@
         key.style.left = `${whiteKeyPosX[note]}px`;
         key.id = 'key_'+note;
         key.tabIndex = 0;
+        key.style.width = whiteKeyWidth+"px";
+        key.style.height = whiteKeyHeight+"px";
+        key.style.paddingBottom = Math.round(whiteKeyHeight/45)+"px";
+        key.style.fontSize = Math.max(9,Math.round(whiteKeyWidth/3))+"px";
         key.addEventListener('mousedown', () => { key.classList.add('active'); playKeyNote(note,key); });
         key.addEventListener('touchstart', (e) => { e.preventDefault(); key.classList.add('active'); playKeyNote(note,key); });
         key.addEventListener('mouseup', () => { key.classList.remove('active'); });
@@ -284,6 +269,10 @@
         key.style.left = `${whiteKeyPosX[bl.pos]+(whiteKeyWidth - blackKeyWidth/2)}px`;
         key.id = 'key_'+bl.note;
         key.tabIndex = 0;
+        key.style.width = blackKeyWidth+"px";
+        key.style.height = blackKeyHeight+"px";
+        key.style.paddingBottom = Math.round(blackKeyHeight/35)+"px";
+        key.style.fontSize = Math.max(7,Math.round(blackKeyWidth/4))+"px";
         key.addEventListener('mousedown', () => { key.classList.add('active'); playKeyNote(bl.note,key); });
         key.addEventListener('touchstart', (e) => { e.preventDefault(); key.classList.add('active'); playKeyNote(bl.note,key); });
         key.addEventListener('mouseup', () => { key.classList.remove('active'); });
@@ -319,7 +308,6 @@
       src.stop(audioContext.currentTime + Math.min(duration/1000,src.buffer.duration/src.playbackRate.value));
     }
     async function playKeyNote(note,keyElement) {
-      if (isPlayingBack) return;
       if (!isAudioActivated) { showAlert("Bật âm bằng nút 🔇 trước khi chơi!"); return; }
       initAudioContext();
       if (keyElement) {
@@ -328,136 +316,8 @@
       }
       await ensureSamples();
       playSample(note,1.0,1110);
-      if (isRecording) {
-        let now = Date.now();
-        if (noteRecords.length === 0) recordStart = now;
-        noteRecords.push({ note: note, ts: now - recordStart });
-        updateRecordStatus();
-      }
     }
-    async function playback() {
-      if (noteRecords.length === 0) return;
-      isPlayingBack = true;
-      setPlaybackUI(true);
-      playbackStartTime = Date.now();
-      playbackEndTime = playbackStartTime + (noteRecords[noteRecords.length-1].ts || 0);
-      showPlaybackRemaining();
-      for (let i = 0; i < noteRecords.length; i++) {
-        let rec = noteRecords[i];
-        let t = setTimeout(async () => {
-          await ensureSamples();
-          let keyEl = document.getElementById('key_' + rec.note);
-          if (keyEl) {
-            keyEl.classList.add('active');
-            setTimeout(() => { keyEl.classList.remove('active'); }, 200);
-          }
-          playSample(rec.note);
-          if (i === noteRecords.length - 1) {
-            setTimeout(() => { isPlayingBack = false; setPlaybackUI(false); hidePlaybackRemaining(); },500);
-          }
-        }, rec.ts);
-        playbackTimeouts.push(t);
-      }
-    }
-    function showPlaybackRemaining() {
-      hidePlaybackRemaining();
-      if (noteRecords.length < 1) return;
-      let playRem = document.getElementById('playRemaining');
-      playRem.style.display = 'inline';
-      const totalMs = noteRecords[noteRecords.length-1].ts;
-      function updateTimer() {
-        if (!isPlayingBack) { playRem.textContent = ""; return;}
-        let now = Date.now();
-        let remaining = Math.max(0, Math.round((playbackEndTime-now)/1000));
-        playRem.textContent = "⏱ "+remaining+" giây";
-        if (remaining <= 0) playRem.textContent="";
-      }
-      updateTimer();
-      playbackTimer = setInterval(updateTimer, 560);
-    }
-    function hidePlaybackRemaining() {
-      let playRem = document.getElementById('playRemaining');
-      playRem.textContent = "";
-      if (playbackTimer) clearInterval(playbackTimer);
-      playbackTimer = null;
-    }
-    function stopPlayback() {
-      playbackTimeouts.forEach(tid => clearTimeout(tid));
-      playbackTimeouts = [];
-      isPlayingBack = false;
-      setPlaybackUI(false);
-      hidePlaybackRemaining();
-    }
-    function setRecordUI(active) {
-      recordBtn.classList.toggle('active', active);
-      recordBtn.innerHTML = active ? '<span id="recIcon">⏹️</span> Dừng ghi âm' : '<span id="recIcon">⏺️</span> Ghi âm';
-      recordStatus.classList.toggle('active', active);
-      recordStatus.textContent = active ? "Đang ghi âm..." : noteRecords.length>0 ? `Đã ghi ${noteRecords.length} nốt` : "Chưa ghi âm";
-      playBtn.disabled = noteRecords.length===0 || active;
-      downloadBtn.disabled = noteRecords.length===0 || active;
-      clearBtn.disabled = noteRecords.length===0 || active;
-    }
-    function setPlaybackUI(active) {
-      playBtn.classList.toggle('active', active);
-      playBtn.innerHTML = active ? '<span id="playIcon">⏹️</span> Dừng lại' : '<span id="playIcon">▶️</span> Phát lại';
-      recordBtn.disabled = active;
-      downloadBtn.disabled = noteRecords.length===0 || active;
-      clearBtn.disabled = noteRecords.length===0 || active;
-      recordStatus.textContent = active ? "Đang phát lại..." : noteRecords.length>0 ? `Đã ghi ${noteRecords.length} nốt` : "Chưa ghi âm";
-      playBtn.disabled = noteRecords.length===0;
-    }
-    function updateRecordStatus() {
-      let status='Chưa ghi âm';
-      if (isRecording) status = 'Đang ghi âm...';
-      else if (noteRecords.length>0) status = `Đã ghi ${noteRecords.length} nốt`;
-      recordStatus.textContent=status;
-      playBtn.disabled = noteRecords.length===0 || isRecording;
-      downloadBtn.disabled = noteRecords.length===0 || isRecording;
-      clearBtn.disabled = noteRecords.length===0 || isRecording;
-    }
-    function downloadRecord() {
-      if (noteRecords.length===0) return;
-      let obj = {
-        instrument: 'piano',
-        notes: noteRecords,
-        date: new Date().toISOString(),
-        info: "File Piano 72 ghi lại bản chơi, sử dụng trên web này."
-      };
-      let url = URL.createObjectURL(new Blob([JSON.stringify(obj,null,2)],{type:"application/json"}));
-      let a = document.createElement('a');
-      a.href=url;
-      a.download="ban-ghi-piano72-"+Date.now()+".json";
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      setTimeout(()=>{URL.revokeObjectURL(url)},1300);
-    }
-    function clearRecord(){
-      if (isRecording) return;
-      noteRecords = [];
-      updateRecordStatus();
-      hidePlaybackRemaining();
-    }
-    const recordBtn = document.getElementById('recordBtn');
-    const playBtn = document.getElementById('playBtn');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const recordStatus = document.getElementById('recordStatus');
-    const clearBtn = document.getElementById('clearBtn');
-    playBtn.disabled = true; downloadBtn.disabled = true; clearBtn.disabled = true;
-    recordBtn.addEventListener('click', ()=>{
-      if (isPlayingBack) return;
-      if (!isRecording) {
-        isRecording=true; noteRecords=[];
-        recordStart=0; setRecordUI(true); hidePlaybackRemaining();
-      } else {
-        isRecording=false; setRecordUI(false);
-      }
-    });
-    playBtn.addEventListener('click', ()=>{
-      if (isPlayingBack) { stopPlayback(); return; }
-      if (noteRecords.length>0) playback();
-    });
-    downloadBtn.addEventListener('click', downloadRecord);
-    clearBtn.addEventListener('click', ()=>{clearRecord();});
-    // Âm thanh: bật/tắt
+    // Âm thanh bật/tắt và kích hoạt tự động
     const soundToggle = document.getElementById('soundToggle');
     const soundIcon = document.getElementById('soundIcon');
     const soundStatus = document.getElementById('soundStatus');
@@ -510,85 +370,57 @@
         }
       }
     });
-    // ===== Thanh cuộn kéo bàn phím =====
-    /* Khi kéo trong thanh scrollBarBar, tính tọa độ x của chuột/touch rồi đặt scroll của pianoContainer
-       -> không cần thumb, toàn thanh đều có thể chạm/kéo
-    */
-    const pianoContainer = document.querySelector('.piano-container');
-    const pianoDiv = document.getElementById('piano');
-    const scrollBarBar = document.getElementById('scrollBarBar');
-    let isDraggingScrollBar = false, dragStartX = 0, scrollStart = 0, barWidth = 0, pianoMaxScroll = 0;
-    // Desktop
-    scrollBarBar.addEventListener('mousedown', function(e){
-      isDraggingScrollBar = true;
-      dragStartX = e.clientX;
-      barWidth = scrollBarBar.offsetWidth;
-      pianoMaxScroll = Math.max(pianoDiv.offsetWidth - pianoContainer.offsetWidth, 1);
-      // Tính vị trí click trên thanh cuộn
-      let relX = e.offsetX;
-      let scrollRatio = relX / barWidth;
-      pianoContainer.scrollLeft = pianoMaxScroll * scrollRatio;
-      scrollStart = pianoContainer.scrollLeft;
-      scrollBarBar.style.cursor = "grabbing";
-      document.body.style.userSelect = "none";
+
+    // Chức năng chỉnh kích cỡ phím
+    const keySizeSlider = document.getElementById('keySizeSlider');
+    keySizeSlider.addEventListener('input', function() {
+      whiteKeyWidth = parseInt(this.value);
+      blackKeyWidth = Math.round(this.value*0.67);
+      whiteKeyHeight = 180 + (whiteKeyWidth-33)*2;
+      blackKeyHeight = Math.round(whiteKeyHeight*0.61);
+      renderPiano();
     });
-    document.addEventListener('mousemove', function(e){
-      if (isDraggingScrollBar) {
-        // Tính x mới
-        let rect = scrollBarBar.getBoundingClientRect();
-        let x = e.clientX - rect.left;
-        let width = rect.width;
-        let pianoMaxScroll = Math.max(pianoDiv.offsetWidth - pianoContainer.offsetWidth, 1);
-        let scrollRatio = Math.min(1, Math.max(0, x / width));
-        pianoContainer.scrollLeft = pianoMaxScroll * scrollRatio;
+
+    // Chức năng fullscreen landscape
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    let isLandscape = false;
+
+    function setLandscapeMode(active) {
+      isLandscape = !!active;
+      if(isLandscape){
+        document.body.classList.add('landscape');
+        fullscreenBtn.classList.add('active');
+        fullscreenBtn.textContent = 'Thoát ngang';
+        document.querySelector('.piano-container').scrollLeft = 0;
+      }else{
+        document.body.classList.remove('landscape');
+        fullscreenBtn.classList.remove('active');
+        fullscreenBtn.textContent = "Chế độ ngang";
       }
+    }
+    fullscreenBtn.addEventListener('click',()=>{
+      setLandscapeMode(!isLandscape);
     });
-    document.addEventListener('mouseup', function(e){
-      if (isDraggingScrollBar) {
-        isDraggingScrollBar = false;
-        scrollBarBar.style.cursor = "pointer";
-        document.body.style.userSelect = "";
-      }
+
+    // Tự động chuyển ngang nếu quay màn hình
+    window.addEventListener("orientationchange", function() {
+      if(window.innerHeight < window.innerWidth) setLandscapeMode(true);
+      else setLandscapeMode(false);
     });
-    // Mobile touch
-    scrollBarBar.addEventListener('touchstart', function(e){
-      isDraggingScrollBar = true;
-      let touch = e.touches[0];
-      let rect = scrollBarBar.getBoundingClientRect();
-      let x = touch.clientX - rect.left;
-      let width = rect.width;
-      pianoMaxScroll = Math.max(pianoDiv.offsetWidth - pianoContainer.offsetWidth, 1);
-      let scrollRatio = Math.min(1, Math.max(0, x / width));
-      pianoContainer.scrollLeft = pianoMaxScroll * scrollRatio;
-      scrollStart = pianoContainer.scrollLeft;
-      scrollBarBar.style.cursor = "grabbing";
-      document.body.style.userSelect = "none";
+    // Khám phá: nhập/xuất lại nếu resize khi landscape
+    window.addEventListener('resize', function(){
+      if(isLandscape && window.innerHeight > window.innerWidth){ setLandscapeMode(false);}
     });
-    document.addEventListener('touchmove', function(e){
-      if (isDraggingScrollBar && e.touches.length == 1) {
-        let touch = e.touches[0];
-        let rect = scrollBarBar.getBoundingClientRect();
-        let x = touch.clientX - rect.left;
-        let width = rect.width;
-        let pianoMaxScroll = Math.max(pianoDiv.offsetWidth - pianoContainer.offsetWidth, 1);
-        let scrollRatio = Math.min(1, Math.max(0, x / width));
-        pianoContainer.scrollLeft = pianoMaxScroll * scrollRatio;
-      }
-    });
-    document.addEventListener('touchend', function(){
-      if (isDraggingScrollBar) {
-        isDraggingScrollBar = false;
-        scrollBarBar.style.cursor = "pointer";
-        document.body.style.userSelect = "";
-      }
-    });
-    window.addEventListener('resize', function(){});
+
     window.addEventListener('load', async () => {
       initAudioContext();
       await ensureSamples();
       renderPiano();
       document.getElementById('loadingStatus').style.display = 'none';
-      updateRecordStatus();
+      // Nếu mở sẵn màn hình ngang
+      if(window.innerHeight < window.innerWidth){
+        setLandscapeMode(true);
+      }
     });
   </script>
 </body>
