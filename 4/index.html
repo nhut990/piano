@@ -64,6 +64,63 @@
     .black-key:active { background: linear-gradient(137deg, #b3e5fc 0%, #2ac7ec 100%);}
     .created-by-footer { text-align: center; color: #fff; font-size: 15px; opacity: 0.91; margin: 29px auto 12px auto; width: 100%; }
 
+    /* Thanh điều hướng piano */
+    .piano-scrollbar-container {
+      width: 100%; max-width: 1540px; margin: 8px auto 0 auto; /* 8px: cách piano */
+      user-select: none;
+      touch-action: none;
+      padding-bottom: 9px;
+      background: rgba(40,50,140,0.12);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .piano-scrollbar-track {
+      position: relative;
+      width: 98%; height: 38px;
+      background: linear-gradient(90deg,#fff 20%, #e4e4ef 70%);
+      border-radius: 19px;
+      box-shadow: 0 1px 7px rgba(0,0,0,0.16);
+      overflow: hidden;
+      margin: auto;
+      display: flex; align-items: center;
+    }
+    .piano-scrollbar-thumb {
+      position: absolute;
+      top: 0;
+      height: 98%;
+      width: 62px;
+      background: linear-gradient(135deg,#6656df 0%,#43dafc 100%);
+      border-radius: 16px;
+      cursor: pointer;
+      box-shadow: 0 3px 12px rgba(76,89,255,0.23);
+      border: 2px solid #FFF3;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: bold; color: #fff; font-size: 16px; text-shadow: 0 1px 4px #6669;
+      transition: box-shadow 0.11s;
+      z-index: 3;
+      /* Đặt transition hữu dụng cho mobile */
+      transition: left 0.18s cubic-bezier(0.7,0,0.3,1);
+    }
+    .piano-scrollbar-thumb:active {
+      box-shadow: 0 4px 16px rgba(40,50,140,0.19);
+      background: linear-gradient(135deg,#43dafc 0%,#6656df 100%);
+    }
+    .piano-scrollbar-labels {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0; left: 0; display: flex;
+      align-items: center;
+      pointer-events: none;
+    }
+    .piano-scrollbar-label {
+      flex: 1;
+      text-align: center;
+      font-size: 11px;
+      color: #443;
+      opacity: 0.68;
+      font-weight: bold;
+    }
     /* Fullscreen ngang khi body có class .landscape */
     body.landscape .piano-container {
       max-width: 100vw;
@@ -74,24 +131,26 @@
       width: 99vw !important; min-width: 0; max-width: none;
       height: 180px;
     }
-    body.landscape {
-      min-height: 100vw;
-      background: linear-gradient(90deg,#667eea 0%,#764ba2 100%);
+    body.landscape .piano-scrollbar-container {
+      max-width: 99vw;
     }
-
     /* Điều chỉnh responsive, giữ phím tràn ngang khi nhỏ */
     @media (max-width: 2400px){
       .piano { width:2392px; max-width:98vw;}
+      .piano-scrollbar-container { max-width:98vw; }
     }
     @media (max-width: 1900px){
       .piano { width:1910px;}
+      .piano-scrollbar-container { max-width: 1900px; }
     }
     @media (max-width: 1290px){
       .piano { width:1260px;}
+      .piano-scrollbar-container{max-width:1260px;}
     }
     @media (max-width: 900px){
       .piano-container{max-width:99vw;}
       .piano{width:930px;}
+      .piano-scrollbar-container{max-width:98vw;}
     }
     @media (max-width: 1000px){
       .container{padding:13px 0;}
@@ -99,11 +158,13 @@
     @media (max-width: 700px){
       .piano{width:650px;}
       .piano-container{padding:3px;}
+      .piano-scrollbar-container{max-width:99vw;}
     }
     @media (max-width: 650px){
       .piano{width:99vw;}
       .container{padding:6px 0;}
       .piano-container{padding:1px;}
+      .piano-scrollbar-container{max-width:99vw;}
     }
   </style>
 </head>
@@ -127,9 +188,26 @@
     <div class="piano-container">
       <div class="piano" id="piano"></div>
     </div>
+    <!-- Thanh cuộn di chuyển nhanh piano -->
+    <div class="piano-scrollbar-container">
+      <div class="piano-scrollbar-track" id="pianoScrollbarTrack">
+        <div class="piano-scrollbar-thumb" id="pianoScrollbarThumb">⇆</div>
+        <div class="piano-scrollbar-labels">
+          <span class="piano-scrollbar-label">C2</span>
+          <span class="piano-scrollbar-label">C3</span>
+          <span class="piano-scrollbar-label">C4</span>
+          <span class="piano-scrollbar-label">C5</span>
+          <span class="piano-scrollbar-label">C6</span>
+          <span class="piano-scrollbar-label">C7</span>
+        </div>
+      </div>
+    </div>
   </div>
   <div class="created-by-footer">Created by Minh Nhựt</div>
   <script>
+    // To use code, the original JS block should be pasted here.
+    // ----- Begin Piano Logic -----
+
     // Mảng nốt trắng từ C2 đến B7
     const WHITE_NOTES = [
       "C2","D2","E2","F2","G2","A2","B2",
@@ -279,6 +357,8 @@
         key.addEventListener('touchend', () => { key.classList.remove('active'); });
         pianoDiv.appendChild(key);
       });
+      // Mỗi lần render lại, cập nhật thanh cuộn
+      updateScrollbarThumb();
     }
     async function playSample(note, volume=1.0, duration=1200) {
       if (!audioContext || isMuted || !isAudioActivated) return;
@@ -397,6 +477,7 @@
         fullscreenBtn.classList.remove('active');
         fullscreenBtn.textContent = "Chế độ ngang";
       }
+      updateScrollbarThumb();
     }
     fullscreenBtn.addEventListener('click',()=>{
       setLandscapeMode(!isLandscape);
@@ -410,6 +491,7 @@
     // Khám phá: nhập/xuất lại nếu resize khi landscape
     window.addEventListener('resize', function(){
       if(isLandscape && window.innerHeight > window.innerWidth){ setLandscapeMode(false);}
+      updateScrollbarThumb();
     });
 
     window.addEventListener('load', async () => {
@@ -421,6 +503,8 @@
       if(window.innerHeight < window.innerWidth){
         setLandscapeMode(true);
       }
+      initScrollbarEvents();
+      updateScrollbarThumb();
     });
 
     // === TÍNH NĂNG KÉO BÁN PHÍM TRÊN VÙNG container ===
@@ -473,6 +557,98 @@
         }
       });
     })();
+
+    // === Thanh cuộn di chuyển nhanh đến phím bên dưới ===
+    function clamp(val, min, max) { return Math.max(min, Math.min(max, val)); }
+    function updateScrollbarThumb() {
+      const pianoContainer = document.querySelector('.piano-container');
+      const piano = document.getElementById('piano');
+      const scrollbarTrack = document.getElementById('pianoScrollbarTrack');
+      const thumb = document.getElementById('pianoScrollbarThumb');
+
+      // Tổng chiều ngang có thể cuộn
+      const maxScroll = piano.scrollWidth - pianoContainer.clientWidth;
+      const thumbWidth = thumb.offsetWidth;
+      const trackWidth = scrollbarTrack.offsetWidth;
+      // Tỷ lệ vị trí hiện tại
+      const percent = (pianoContainer.scrollLeft / (maxScroll||1));
+      // Di chuyển thumb
+      thumb.style.left = clamp(percent*(trackWidth-thumbWidth),0,trackWidth-thumbWidth) + "px";
+    }
+
+    function scrollPianoToPercent(percent) {
+      const pianoContainer = document.querySelector('.piano-container');
+      const piano = document.getElementById('piano');
+      const maxScroll = piano.scrollWidth - pianoContainer.clientWidth;
+      pianoContainer.scrollLeft = percent * maxScroll;
+      updateScrollbarThumb();
+    }
+
+    function initScrollbarEvents() {
+      const thumb = document.getElementById('pianoScrollbarThumb');
+      const track = document.getElementById('pianoScrollbarTrack');
+      let isDragging = false, startX = 0, startLeft = 0, trackWidth = 0, thumbWidth = 0;
+
+      // Drag thumb
+      function onDown(e) {
+        isDragging = true;
+        startX = (e.touches ? e.touches[0].clientX : e.clientX);
+        startLeft = parseInt(thumb.style.left)||0;
+        trackWidth = track.offsetWidth;
+        thumbWidth = thumb.offsetWidth;
+        document.body.style.userSelect = 'none';
+        thumb.style.transition = 'none';
+        e.preventDefault();
+      }
+      function onMove(e) {
+        if (!isDragging) return;
+        const currX = (e.touches ? e.touches[0].clientX : e.clientX);
+        let dx = currX - startX;
+        let newLeft = clamp(startLeft + dx, 0, trackWidth - thumbWidth);
+        thumb.style.left = newLeft + "px";
+        let percent = newLeft / (trackWidth - thumbWidth);
+        scrollPianoToPercent(percent);
+      }
+      function onUp(e) {
+        if(isDragging){
+          isDragging = false;
+          document.body.style.userSelect = '';
+          thumb.style.transition = '';
+        }
+      }
+      thumb.addEventListener('mousedown', onDown);
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+
+      // Touch events
+      thumb.addEventListener('touchstart', onDown);
+      window.addEventListener('touchmove', onMove, {passive:false});
+      window.addEventListener('touchend', onUp);
+
+      // Click trên track để nhảy nhanh vị trí
+      track.addEventListener('mousedown', function(e){
+        if(e.target === thumb) return;
+        trackWidth = track.offsetWidth;
+        thumbWidth = thumb.offsetWidth;
+        let clickX = e.offsetX;
+        let percent = clamp((clickX-thumbWidth/2)/(trackWidth-thumbWidth),0,1);
+        scrollPianoToPercent(percent);
+      });
+      track.addEventListener('touchstart', function(e){
+        if(e.target === thumb) return;
+        trackWidth = track.offsetWidth;
+        thumbWidth = thumb.offsetWidth;
+        let rect = track.getBoundingClientRect();
+        let touchX = e.touches[0].clientX - rect.left;
+        let percent = clamp((touchX-thumbWidth/2)/(trackWidth-thumbWidth),0,1);
+        scrollPianoToPercent(percent);
+      },{passive:false});
+
+      // Cập nhật khi cuộn
+      const pianoContainer = document.querySelector('.piano-container');
+      pianoContainer.addEventListener('scroll', updateScrollbarThumb);
+    }
+
   </script>
 </body>
 </html>
