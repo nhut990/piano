@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width,initial-scale=1.0">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>🎹 Đàn Piano 72 phím (C2-B7)</title>
   <style>
     body { font-family: Arial, sans-serif; background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); margin:0; padding:0; min-height:100vh; }
@@ -34,7 +34,7 @@
     .sound-toggle.muted { background: linear-gradient(145deg, #f44336, #d32f2f);}
     .sound-toggle:active { transform: scale(0.96); }
     .sound-status { color: white; font-size: 12px; font-weight: bold; margin-top: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.14); }
-    .loading-status { text-align: center; color: #FFD700; font-size: 13px; margin: 7px 0 10px 0; font-weight: bold; }
+    .loading-status { text-align: center; color: #FFD700; font-size: 13px; margin: 7px 0 10px 0; font-weight: bold; pointer-events:none;}
     #alert { text-align: center; color: #f44336; background: #fff2f2; border-radius: 7px; font-size: 14px; font-weight:bold;
       margin: 11px auto 0 auto; max-width: 320px; padding: 8px 11px; display: none; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border: 1px solid #ffd9d9;
     }
@@ -44,6 +44,7 @@
       max-width: 1540px; margin: auto;
       overflow-x: auto;
       transition: all 0.2s;
+      cursor: grab;
     }
     .piano {
       position: relative; height: 180px; min-width: 2376px; margin: 0 auto;
@@ -61,7 +62,7 @@
       box-shadow: 0 2px 4px rgba(0,0,0,0.52); transition: all 0.05s;}
     .black-key.active { background: linear-gradient(137deg, #2ac7ec 0%, #76e2ff 100%); color: #1d8a95;}
     .black-key:active { background: linear-gradient(137deg, #b3e5fc 0%, #2ac7ec 100%);}
-    .created-by-footer { text-align: center; color: #fff; font-size: 15px; opacity: 0.91; margin: 29px auto 14px auto; width: 100%; }
+    .created-by-footer { text-align: center; color: #fff; font-size: 15px; opacity: 0.91; margin: 29px auto 12px auto; width: 100%; }
 
     /* Fullscreen ngang khi body có class .landscape */
     body.landscape .piano-container {
@@ -161,8 +162,6 @@
       return obj;
     }
 
-    let whiteKeyPosX = getWhiteKeyPosX();
-
     const pianoNotesAll = WHITE_NOTES.concat(BLACK_NOTES_LAYOUT.map(n=>n.note)).sort((a,b) => {
       function noteMidi(note) {
         const ORDER = {"C":0,"C#":1,"D":2,"D#":3,"E":4,"F":5,"F#":6,"G":7,"G#":8,"A":9,"A#":10,"B":11};
@@ -236,7 +235,7 @@
       setTimeout(() => { alertBox.style.display = "none"; }, 2100);
     }
     function renderPiano() {
-      whiteKeyPosX = getWhiteKeyPosX();
+      const whiteKeyPosX = getWhiteKeyPosX();
       const pianoDiv = document.getElementById('piano');
       pianoDiv.innerHTML = '';
       // Đặt width/height động cho piano
@@ -391,7 +390,8 @@
         document.body.classList.add('landscape');
         fullscreenBtn.classList.add('active');
         fullscreenBtn.textContent = 'Thoát ngang';
-        document.querySelector('.piano-container').scrollLeft = 0;
+        let pianoCont = document.querySelector('.piano-container');
+        pianoCont.scrollLeft = 0;
       }else{
         document.body.classList.remove('landscape');
         fullscreenBtn.classList.remove('active');
@@ -422,6 +422,57 @@
         setLandscapeMode(true);
       }
     });
+
+    // === TÍNH NĂNG KÉO BÁN PHÍM TRÊN VÙNG container ===
+    (function() {
+      const pianoContainer = document.querySelector('.piano-container');
+      let isPanning = false, startX = 0, scrollStart = 0;
+
+      // Touch Devices
+      pianoContainer.addEventListener('touchstart', function(e) {
+        if (e.target.classList.contains('white-key') || e.target.classList.contains('black-key')) return;
+        if (e.touches.length === 1) {
+          isPanning = true;
+          startX = e.touches[0].clientX;
+          scrollStart = pianoContainer.scrollLeft;
+          pianoContainer.style.cursor = 'grabbing';
+          e.preventDefault();
+        }
+      });
+      pianoContainer.addEventListener('touchmove', function(e){
+        if (isPanning && e.touches.length === 1) {
+          let dx = startX - e.touches[0].clientX;
+          pianoContainer.scrollLeft = scrollStart + dx;
+          e.preventDefault();
+        }
+      });
+      pianoContainer.addEventListener('touchend', function(){
+        isPanning = false;
+        pianoContainer.style.cursor = '';
+      });
+
+      // Mouse Devices
+      pianoContainer.addEventListener('mousedown', function(e) {
+        if (e.target.classList.contains('white-key') || e.target.classList.contains('black-key')) return;
+        isPanning = true;
+        startX = e.clientX;
+        scrollStart = pianoContainer.scrollLeft;
+        pianoContainer.style.cursor = 'grabbing';
+        e.preventDefault();
+      });
+      window.addEventListener('mousemove', function(e){
+        if (isPanning) {
+          let dx = startX - e.clientX;
+          pianoContainer.scrollLeft = scrollStart + dx;
+        }
+      });
+      window.addEventListener('mouseup', function(){
+        if (isPanning) {
+          isPanning = false;
+          pianoContainer.style.cursor = '';
+        }
+      });
+    })();
   </script>
 </body>
 </html>
