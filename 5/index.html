@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Đàn Piano Electric + Transpose Semitone</title>
+  <title>Đàn Piano Acoustic Grand + Transpose + Size + Kéo</title>
   <style>
     body { font-family: Arial, sans-serif; background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); margin:0; padding:0; min-height:100vh; }
-    .container { width:100%; max-width:880px; margin:auto; position:relative; padding:28px 0 14px;}
+    .container { width:100%; max-width:1600px; margin:auto; position:relative; padding:28px 0 14px;}
     h1 { color: #FFD700; text-align: center; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); margin: 0 0 10px 0;}
     .sound-control {
       position: absolute; top: 10px; right: 14px;
@@ -19,83 +19,136 @@
     .sound-toggle:active { transform: scale(0.96); }
     .sound-status { color: white; font-size: 12px; font-weight: bold; margin-top: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.14); }
 
-    .transpose-control { display:flex; justify-content:center; align-items:center; margin:12px 0 17px 0; gap:15px;}
+    .transpose-control { display:flex; justify-content:center; align-items:center; margin:10px 0 12px 0; gap:15px;}
     .transpose-btn { background: linear-gradient(135deg, #2ac7ec, #7B1FA2); color: #fff; border:none; border-radius: 7px; padding:4px 14px; font-size:17px; font-weight:bold; cursor:pointer; transition:all 0.14s;}
     .transpose-btn:active {transform:scale(0.98);}
     .transpose-reset { cursor:pointer; color:#FFD700; text-decoration:underline;}
     .transpose-status { color:#FFD700; font-size:15px; font-weight:bold; letter-spacing:1px;}
-    .piano-container { background: rgba(0,0,0,0.27); backdrop-filter: blur(8px); border-radius: 10px; padding: 10px; box-shadow: 0 9px 28px rgba(0,0,0,0.39); max-width: 820px; margin: auto; }
-    .piano { position: relative; height: 150px; width: 1260px; margin: 0 auto;}
-    .white-key { position: absolute; width: 33px; height: 150px; background: linear-gradient(to bottom, #fff 0%, #ececec 100%); border: 2px solid #222; border-radius: 0 0 5px 5px; cursor: pointer;
-      user-select: none; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 4px; font-size: 9px; color: #555; font-weight: bold; transition: all 0.06s;}
-    .white-key.active { background: linear-gradient(137deg, #2ac7ec 0%, #76e2ff 100%); color: #1d8a95;}
-    .white-key:active { background: linear-gradient(137deg, #b3e5fc 0%, #2ac7ec 100%);}
-    .black-key { position: absolute; width: 22px; height: 89px; background: linear-gradient(to bottom, #444 0%, #091a21 100%); border: 1px solid #111; border-radius: 0 0 4px 4px; cursor: pointer;
-      user-select: none; z-index: 9; color: white; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 3px; font-size: 7px; font-weight: bold;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.52); transition: all 0.05s;}
-    .black-key.active { background: linear-gradient(137deg, #2ac7ec 0%, #76e2ff 100%); color: #1d8a95;}
-    .black-key:active { background: linear-gradient(137deg, #b3e5fc 0%, #2ac7ec 100%);}
-    .created-by-footer {
-      text-align: center;
-      color: #fff;
-      font-size: 15px;
-      opacity: 0.91;
-      margin: 28px auto 14px auto;
-      width: 100%;
+    .created-by-footer { text-align: center; color: #fff; font-size: 15px; opacity: 0.91; margin: 28px auto 14px auto; width: 100%; }
+
+    .control-bar {
+      text-align: center; margin-bottom: 4px;
+      display: flex; justify-content: center; gap:14px; align-items:center; flex-wrap: wrap;
     }
+    .size-label { color: #fff; font-weight: bold; font-size: 15px; margin-right:3px; }
+    .size-slider { width: 120px; height: 24px; }
+
     .loading-status {
       text-align: center; color: #FFD700; font-size: 13px; margin: 7px 0 10px 0; font-weight: bold;
     }
-    #alert { 
-      text-align: center; 
-      color: #f44336; 
-      background: #fff2f2;
-      border-radius: 7px; 
-      font-size: 14px;
-      font-weight:bold;
-      margin: 11px auto 0 auto; 
-      max-width: 320px; 
-      padding: 8px 11px;
-      display: none;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-      border: 1px solid #ffd9d9;
+    #alert { text-align: center; color: #f44336; background: #fff2f2; border-radius: 7px; font-size: 14px; font-weight:bold;
+      margin: 11px auto 0 auto; max-width: 320px; padding: 8px 11px; display: none; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border: 1px solid #ffd9d9;
     }
-    @media (max-width: 1290px){
-      .piano { width:98vw; max-width:1260px;}
+    .piano-container {
+      background: rgba(0,0,0,0.27); backdrop-filter: blur(8px); border-radius: 10px; padding: 0; box-shadow: 0 9px 28px rgba(0,0,0,0.39);
+      margin: auto; width: 100%; overflow-x: auto; transition: all 0.2s; cursor: grab; position: relative; box-sizing: border-box;
     }
-    @media (max-width: 900px){
-      .piano-container{max-width:99vw;}
-      .piano{width:930px;}
+    .piano {
+      position: relative; height: 180px; margin: 0 auto; user-select: none; transition: all 0.25s; box-sizing: border-box;
     }
-    @media (max-width: 1000px){
+    .white-key { position: absolute; background: linear-gradient(to bottom, #fff 0%, #ececec 100%);
+      border: 2px solid #222; border-radius: 0 0 6px 6px; cursor: pointer; user-select: none; display: flex;
+      align-items: flex-end; justify-content: center; font-size: 9px; color: #555; font-weight: bold; transition: all 0.06s;}
+    .white-key.active { background: linear-gradient(137deg, #2ac7ec 0%, #76e2ff 100%); color: #1d8a95;}
+    .white-key:active { background: linear-gradient(137deg, #b3e5fc 0%, #2ac7ec 100%);}
+    .black-key { position: absolute; background: linear-gradient(to bottom, #444 0%, #091a21 100%);
+      border: 1px solid #111; border-radius: 0 0 4px 4px; cursor: pointer; user-select: none; z-index: 9; color: white;
+      display: flex; align-items: flex-end; justify-content: center; font-size: 7px; font-weight: bold;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.52); transition: all 0.05s;}
+    .black-key.active { background: linear-gradient(137deg, #2ac7ec 0%, #76e2ff 100%); color: #1d8a95;}
+    .black-key:active { background: linear-gradient(137deg, #b3e5fc 0%, #2ac7ec 100%);}
+    .piano-scrollbar-container {
+      width: 100%; margin: 2px auto 0 auto; user-select: none; touch-action: none;
+      padding-bottom: 2px;
+      background: rgba(40,50,140,0.08);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      box-sizing: border-box;
+    }
+    .piano-scrollbar-track {
+      position: relative;
+      width: 98%; height: 38px;
+      background: linear-gradient(90deg,#fff 20%, #e4e4ef 70%);
+      border-radius: 19px;
+      box-shadow: 0 1px 7px rgba(0,0,0,0.16);
+      overflow: hidden;
+      margin: auto;
+      display: flex; align-items: center;
+    }
+    .piano-scrollbar-thumb {
+      position: absolute;
+      top: 0;
+      height: 98%;
+      width: 62px;
+      background: linear-gradient(135deg,#6656df 0%,#43dafc 100%);
+      border-radius: 16px;
+      cursor: pointer;
+      box-shadow: 0 3px 12px rgba(76,89,255,0.23);
+      border: 2px solid #FFF3;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: bold; color: #fff; font-size: 16px; text-shadow: 0 1px 4px #6669;
+      transition: box-shadow 0.11s, left 0.18s cubic-bezier(0.7,0,0.3,1);
+      z-index: 3;
+    }
+    .piano-scrollbar-thumb:active {
+      box-shadow: 0 4px 16px rgba(40,50,140,0.19);
+      background: linear-gradient(135deg,#43dafc 0%,#6656df 100%);
+    }
+    .piano-scrollbar-labels {
+      position: absolute; width: 100%; height: 100%; top: 0; left: 0;
+      display: flex; align-items: center; pointer-events: none;
+    }
+    .piano-scrollbar-label {
+      flex: 1;
+      text-align: center;
+      font-size: 11px;
+      color: #443;
+      opacity: 0.68;
+      font-weight: bold;
+    }
+
+    @media(max-width: 1000px){
       .container{padding:13px 0;}
+      .piano-scrollbar-container, .piano-container { width: 100%; max-width: 100vw;}
     }
     @media (max-width: 700px){
-      .piano{width:650px;}
       .piano-container{padding:3px;}
-    }
-    @media (max-width: 650px){
-      .piano{width:99vw;}
       .container{padding:6px 0;}
-      .piano-container{padding:1px;}
+      .piano-scrollbar-container, .piano-container{max-width:99vw; width:99vw;}
     }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="sound-control">
-      <button class="sound-toggle muted" id="soundToggle">
+      <button class="sound-toggle muted" id="soundToggle" tabindex="1">
         <span id="soundIcon">🔇</span>
       </button>
       <span class="sound-status" id="soundStatus">Tắt âm</span>
     </div>
-    <h1>🎹 Đàn Piano Electric</h1>
-    <!-- Transpose Controls -->
+    <h1>🎹 Piano Acoustic Grand + Transpose</h1>
     <div class="transpose-control">
       <button class="transpose-btn" id="transposeDown">-1</button>
       <span class="transpose-status" id="transposeStatus">Transpose: 0</span>
       <button class="transpose-btn" id="transposeUp">+1</button>
       <span class="transpose-reset" id="transposeReset" title="reset">[về 0]</span>
+    </div>
+    <div class="control-bar">
+      <span class="size-label">Kích thước phím:</span>
+      <input type="range" min="18" max="54" value="33" step="1" class="size-slider" id="keySizeSlider">
+    </div>
+    <div class="piano-scrollbar-container">
+      <div class="piano-scrollbar-track" id="pianoScrollbarTrack">
+        <div class="piano-scrollbar-thumb" id="pianoScrollbarThumb">⇆</div>
+        <div class="piano-scrollbar-labels">
+          <span class="piano-scrollbar-label">C2</span>
+          <span class="piano-scrollbar-label">C3</span>
+          <span class="piano-scrollbar-label">C4</span>
+          <span class="piano-scrollbar-label">C5</span>
+          <span class="piano-scrollbar-label">C6</span>
+          <span class="piano-scrollbar-label">C7</span>
+        </div>
+      </div>
     </div>
     <div class="loading-status" id="loadingStatus">⏳ Đang tải nhạc cụ...</div>
     <div id="alert"></div>
@@ -105,85 +158,80 @@
   </div>
   <div class="created-by-footer">Created by Minh Nhựt</div>
   <script>
-    // ----------- Dữ liệu và trạng thái ----------
+    // ===== DATA & STATE =====
     const sampleBaseURL = "https://raw.githubusercontent.com/Nhut11790/nhut11790.github.io/main/tieng/";
-    const sampleInstrument = { name: '🎹 Electric Piano 2', folder: 'electric_piano_2-mp3' };
-
-    // Tất cả notes mà sample có thể có (full range) cho phép trans từ -12 đến +12 vẫn đủ
+    const sampleInstrument = { name: '🎹 Acoustic Grand Piano', folder: 'acoustic_grand_piano-mp3' };
     const chromatic = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
     function noteList(octaveFrom, octaveTo) {
-      // tạo list kiểu ["C2","C#2",...,"B6"]
       let out = [];
-      for (let oct = octaveFrom; oct <= octaveTo; oct++) {
-        for (let i = 0; i < chromatic.length; i++) {
-          out.push(chromatic[i]+oct);
-        }
-      }
+      for(let o=octaveFrom; o<=octaveTo; o++)
+        for(let i=0; i<chromatic.length; i++) out.push(chromatic[i]+o);
       return out;
     }
-    const pianoNotes = [
-      'C3','C#3','D3','D#3','E3','F3','F#3','G3','G#3','A3','A#3','B3',
-      'C4','C#4','D4','D#4','E4','F4','F#4','G4','G#4','A4','A#4','B4',
-      'C5','C#5','D5','D#5','E5','F5','F#5','G5','G#5','A5'
-    ];
-    const allNotes = noteList(2,6); // covers C2~B6
-    // Freq map cho mọi note
-    const notesFreq = (() => {
-      let freq = {};
-      for(let o=2;o<=6;o++) {
-        for(let i=0;i<chromatic.length;i++) {
-          // Công thức MIDI: 440Hz*(2^((midi-69)/12)) với midi = 12*(octave+1)+i
-          let midi = chromatic.length*(o+1)+i;
-          freq[chromatic[i]+o]=440*Math.pow(2,(midi-69)/12);
-        }
-      }
-      return freq;
-    })();
-
+    // White/black key logic
+    const WHITE_NOTES = [];
+    for (let o = 2; o <= 7; o++) {
+      WHITE_NOTES.push('C'+o,'D'+o,'E'+o,'F'+o,'G'+o,'A'+o,'B'+o);
+    }
+    // Nhưng tách để vẽ black key đúng
+    const BLACK_NOTES_LAYOUT = [];
+    for (let o = 2; o <= 7; o++) {
+      BLACK_NOTES_LAYOUT.push({note:"C#"+o, pos:"C"+o});
+      BLACK_NOTES_LAYOUT.push({note:"D#"+o, pos:"D"+o});
+      BLACK_NOTES_LAYOUT.push({note:"F#"+o, pos:"F"+o});
+      BLACK_NOTES_LAYOUT.push({note:"G#"+o, pos:"G"+o});
+      BLACK_NOTES_LAYOUT.push({note:"A#"+o, pos:"A"+o});
+    }
+    // All notes (for preload sample)
+    const pianoNotesAll = WHITE_NOTES.concat(BLACK_NOTES_LAYOUT.map(n=>n.note));
+    const notesFreq = {};
+    pianoNotesAll.forEach(function(note){
+      const ORDER = {"C":0,"C#":1,"D":2,"D#":3,"E":4,"F":5,"F#":6,"G":7,"G#":8,"A":9,"A#":10,"B":11};
+      let m = note.match(/^([A-G]#?)(\d)$/);
+      let midi = 12*(parseInt(m[2])+1)+ORDER[m[1]];
+      notesFreq[note]=440 * Math.pow(2, (midi-69)/12);
+    });
+    // Size state
+    let whiteKeyWidth = 33, blackKeyWidth = 22, whiteKeyHeight = 180, blackKeyHeight = 110;
     let audioContext = null;
     let isMuted = true, isAudioActivated = false;
     let sampleBuffers = {};
     let hasPreload = false;
-    let transpose = 0; // -12 đến +12
+    let transpose = 0; // -12 ~ +12
 
-    // ========== AUDIO ==========
     function initAudioContext() {
-      if (!audioContext) { audioContext = new (window.AudioContext || window.webkitAudioContext)(); }
+      if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
       if (audioContext.state === 'suspended') audioContext.resume();
     }
     function convertSharpToFlat(note) {
-      const sharpToFlat = { 'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb' };
-      for (let sharp in sharpToFlat) {
-        if (note.startsWith(sharp))
-          return note.replace(sharp, sharpToFlat[sharp]);
-      }
+      const sharpToFlat = {'C#':'Db','D#':'Eb','F#':'Gb','G#':'Ab','A#':'Bb'};
+      for(const sharp in sharpToFlat)
+        if(note.startsWith(sharp)) return note.replace(sharp, sharpToFlat[sharp]);
       return note;
     }
     async function preloadSamples() {
-      let notesList = allNotes, folder = sampleInstrument.folder;
+      let notesList = pianoNotesAll;
+      let folder = sampleInstrument.folder;
       let successCount = 0;
       document.getElementById('loadingStatus').textContent = `⏳ Đang tải ${sampleInstrument.name}...`;
-      let promises = notesList.map(note => {
-        let flatNote = convertSharpToFlat(note);
-        let fileName = flatNote + '.mp3';
+      let promises = notesList.map(note=>{
+        let flatNote = convertSharpToFlat(note), fileName = flatNote + ".mp3";
         let url = `${sampleBaseURL}${folder}/${fileName}`;
         return fetch(url)
           .then(res => res.ok ? res.arrayBuffer() : null)
           .then(buf => buf ? audioContext.decodeAudioData(buf) : null)
           .then(audioBuf => { 
-            if(audioBuf) { sampleBuffers[note] = audioBuf; successCount++; 
-              document.getElementById('loadingStatus').textContent = 
-                `⏳ Đang tải ${sampleInstrument.name}... (${successCount}/${notesList.length})`;
+            if(audioBuf){sampleBuffers[note]=audioBuf;successCount++;
+              document.getElementById('loadingStatus').textContent = `⏳ Đang tải ${sampleInstrument.name}... (${successCount}/${notesList.length})`;
             }
           })
           .catch(()=>{});
       });
       await Promise.all(promises);
-      if (successCount === 0) {
-        document.getElementById('loadingStatus').textContent = `❌ Không thể tải nhạc cụ ${sampleInstrument.name}`;
-      } else {
+      if(successCount===0) document.getElementById('loadingStatus').textContent = `❌ Không thể tải ${sampleInstrument.name}`;
+      else {
         document.getElementById('loadingStatus').textContent = `✅ Đã tải ${sampleInstrument.name}`;
-        setTimeout(() => {document.getElementById('loadingStatus').style.display = 'none';},1300);
+        setTimeout(()=>{document.getElementById('loadingStatus').style.display='none';},1200);
       }
       hasPreload = true;
     }
@@ -194,176 +242,236 @@
         await preloadSamples();
       }
     }
-
-    // ========== THÔNG BÁO ===========
     function showAlert(msg) {
       const alertBox = document.getElementById("alert");
       alertBox.textContent = msg;
       alertBox.style.display = "block";
       setTimeout(() => { alertBox.style.display = "none"; }, 2100);
     }
-
-    // ========== RENDER PIANO ===========
+    // ========== PIANO RENDER ===========
+    function getWhiteKeyPosX() {
+      let obj = {};
+      WHITE_NOTES.forEach((note,i)=>{obj[note]=i*whiteKeyWidth;});
+      return obj;
+    }
     function renderPiano() {
+      const whiteKeyPosX = getWhiteKeyPosX();
       const pianoDiv = document.getElementById('piano');
       pianoDiv.innerHTML = '';
-      const whiteOrder = ['C','D','E','F','G','A','B'];
-      const blackMap = {
-        'C': 'C#','D': 'D#','F': 'F#','G': 'G#','A': 'A#'
-      };
-      let whites = [], whitesIndex = {};
-      pianoNotes.forEach(note => {
-        let m = note.match(/^([A-G])([#]?)(\d)$/);
-        if (m && !m[2]) { whitesIndex[note]=whites.length; whites.push({note: note, octave: m[3], key: m[1]}); }
-      });
-      // Phím trắng
-      whites.forEach((data, i) => {
-        let left = i * 33;
+      pianoDiv.style.height = whiteKeyHeight + "px";
+      const trueWidth = WHITE_NOTES.length * whiteKeyWidth;
+      pianoDiv.style.width = trueWidth + "px";
+      const pianoContainer = document.querySelector('.piano-container');
+      pianoContainer.style.maxWidth = trueWidth + "px";
+      WHITE_NOTES.forEach((note, i) => {
         const key = document.createElement('div');
         key.className = 'white-key';
-        key.dataset.note = data.note;
-        key.textContent = data.note;
-        key.style.left = left + 'px';
-        key.id = 'key_'+data.note;
+        key.dataset.note = note;
+        key.textContent = note;
+        key.style.left = `${whiteKeyPosX[note]}px`;
+        key.id = 'key_'+note;
         key.tabIndex = 0;
-        const playKeyNote = () => playNote(data.note, key);
-        key.addEventListener('mousedown', () => { key.classList.add('active'); playKeyNote(); });
-        key.addEventListener('touchstart', (e) => { e.preventDefault(); key.classList.add('active'); playKeyNote(); });
+        key.style.width = whiteKeyWidth+"px";
+        key.style.height = whiteKeyHeight+"px";
+        key.style.paddingBottom = Math.round(whiteKeyHeight/45)+"px";
+        key.style.fontSize = Math.max(9,Math.round(whiteKeyWidth/3))+"px";
+        key.addEventListener('mousedown', () => { key.classList.add('active'); playNote(note,key); });
+        key.addEventListener('touchstart', (e) => { e.preventDefault(); key.classList.add('active'); playNote(note,key); });
         key.addEventListener('mouseup', () => { key.classList.remove('active'); });
         key.addEventListener('mouseleave', () => { key.classList.remove('active'); });
         key.addEventListener('touchend', () => { key.classList.remove('active'); });
         pianoDiv.appendChild(key);
       });
-      // Phím đen
-      whites.forEach((data, i) => {
-        let bKey = blackMap[data.key];
-        if (!bKey) return;
-        let blackNote = bKey + data.octave;
-        if (!pianoNotes.includes(blackNote)) return;
-        let left = (i * 33) + 22;
+      BLACK_NOTES_LAYOUT.forEach(bl=>{
         const key = document.createElement('div');
         key.className = 'black-key';
-        key.dataset.note = blackNote;
-        key.textContent = blackNote;
-        key.style.left = left + 'px';
-        key.id = 'key_'+blackNote;
+        key.dataset.note = bl.note;
+        key.textContent = bl.note;
+        key.style.left = `${whiteKeyPosX[bl.pos]+(whiteKeyWidth - blackKeyWidth/2)}px`;
+        key.id = 'key_'+bl.note;
         key.tabIndex = 0;
-        const playKeyNote = () => playNote(blackNote, key);
-        key.addEventListener('mousedown', () => { key.classList.add('active'); playKeyNote(); });
-        key.addEventListener('touchstart', (e) => { e.preventDefault(); key.classList.add('active'); playKeyNote(); });
+        key.style.width = blackKeyWidth+"px";
+        key.style.height = blackKeyHeight+"px";
+        key.style.paddingBottom = Math.round(blackKeyHeight/35)+"px";
+        key.style.fontSize = Math.max(7,Math.round(blackKeyWidth/4))+"px";
+        key.addEventListener('mousedown', () => { key.classList.add('active'); playNote(bl.note,key); });
+        key.addEventListener('touchstart', (e) => { e.preventDefault(); key.classList.add('active'); playNote(bl.note,key); });
         key.addEventListener('mouseup', () => { key.classList.remove('active'); });
         key.addEventListener('mouseleave', () => { key.classList.remove('active'); });
         key.addEventListener('touchend', () => { key.classList.remove('active'); });
         pianoDiv.appendChild(key);
       });
+      updateScrollbarThumb();
     }
-
-    // ========== PHÁT ÂM ===========
-    function transposeNote(note, semitone) {
-      // note như "C3", semitone là số bán âm: +1 = lên 1 bán âm
-      // Map note tới chỉ số, rồi cộng/trừ semitone, rồi lấy về note mới
-      let m = note.match(/^([A-G]#?)(\d)$/);
-      if (!m) return note;
-      let noteName = m[1], octave = parseInt(m[2]);
-      let ni = chromatic.indexOf(noteName);
-      if (ni < 0) return note;
-
-      let idx = (octave * 12) + ni + semitone;
-      let newOctave = Math.floor(idx / 12);
-      let newNi = ((idx % 12) + 12) % 12; // handle negatives
-      let newNote = chromatic[newNi] + newOctave;
-      if (allNotes.indexOf(newNote) >= 0) return newNote;
-      // Nếu ngoài range sample thì trả về note gốc
-      return note;
+    function scrollPianoToPercent(percent) {
+      const pianoContainer = document.querySelector('.piano-container');
+      const piano = document.getElementById('piano');
+      const maxScroll = piano.scrollWidth - pianoContainer.clientWidth;
+      pianoContainer.scrollLeft = percent * maxScroll;
+      updateScrollbarThumb();
     }
-
-    async function playSample(note, volume=1.0, duration=1200) {
-      if (!audioContext || !isAudioActivated) return;
-      let sampleBuffer = sampleBuffers[note];
-      let rootNote = note;
-      if (!sampleBuffer) {
-        const availableNotes = Object.keys(sampleBuffers).filter(n => sampleBuffers[n]);
-        let minDiff = Infinity, bestNote=null;
-        for(const avail of availableNotes){
-          let diff = Math.abs(notesFreq[avail] - notesFreq[note]);
-          if(diff < minDiff){minDiff=diff;bestNote=avail;}
+    function clamp(val, min, max) { return Math.max(min, Math.min(max, val)); }
+    function updateScrollbarThumb() {
+      const pianoContainer = document.querySelector('.piano-container');
+      const piano = document.getElementById('piano');
+      const scrollbarTrack = document.getElementById('pianoScrollbarTrack');
+      const thumb = document.getElementById('pianoScrollbarThumb');
+      const maxScroll = piano.scrollWidth - pianoContainer.clientWidth;
+      const thumbWidth = thumb.offsetWidth;
+      const trackWidth = scrollbarTrack.offsetWidth;
+      const percent = (pianoContainer.scrollLeft / (maxScroll||1));
+      thumb.style.left = clamp(percent*(trackWidth-thumbWidth),0,trackWidth-thumbWidth) + "px";
+    }
+    function initScrollbarEvents() {
+      const thumb = document.getElementById('pianoScrollbarThumb');
+      const track = document.getElementById('pianoScrollbarTrack');
+      let isDragging = false, startX = 0, startLeft = 0, trackWidth = 0, thumbWidth = 0;
+      function onDown(e) {
+        isDragging = true;
+        startX = (e.touches ? e.touches[0].clientX : e.clientX);
+        startLeft = parseInt(thumb.style.left)||0;
+        trackWidth = track.offsetWidth;
+        thumbWidth = thumb.offsetWidth;
+        document.body.style.userSelect = 'none';
+        thumb.style.transition = 'none';
+        e.preventDefault();
+      }
+      function onMove(e) {
+        if (!isDragging) return;
+        const currX = (e.touches ? e.touches[0].clientX : e.clientX);
+        let dx = currX - startX;
+        let newLeft = clamp(startLeft + dx, 0, trackWidth - thumbWidth);
+        thumb.style.left = newLeft + "px";
+        let percent = newLeft / (trackWidth - thumbWidth);
+        scrollPianoToPercent(percent);
+      }
+      function onUp(e) {
+        if(isDragging){
+          isDragging = false;
+          document.body.style.userSelect = '';
+          thumb.style.transition = '';
         }
-        if (!bestNote) return;
-        sampleBuffer = sampleBuffers[bestNote];
-        rootNote = bestNote;
       }
-      const src = audioContext.createBufferSource();
-      src.buffer = sampleBuffer;
-      let semitone = Math.log2(notesFreq[note] / notesFreq[rootNote]) * 12;
-      src.playbackRate.value = Math.pow(2, semitone / 12);
-      const gainNode = audioContext.createGain();
-      gainNode.gain.value = volume;
-      gainNode.connect(audioContext.destination);
-      src.connect(gainNode);
-      src.start();
-      src.stop(audioContext.currentTime + Math.min(duration/1000, src.buffer.duration/src.playbackRate.value));
+      thumb.addEventListener('mousedown', onDown);
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+      thumb.addEventListener('touchstart', onDown);
+      window.addEventListener('touchmove', onMove, {passive:false});
+      window.addEventListener('touchend', onUp);
+      track.addEventListener('mousedown', function(e){
+        if(e.target === thumb) return;
+        trackWidth = track.offsetWidth;
+        thumbWidth = thumb.offsetWidth;
+        let clickX = e.offsetX;
+        let percent = clamp((clickX-thumbWidth/2)/(trackWidth-thumbWidth),0,1);
+        scrollPianoToPercent(percent);
+      });
+      track.addEventListener('touchstart', function(e){
+        if(e.target === thumb) return;
+        trackWidth = track.offsetWidth;
+        thumbWidth = thumb.offsetWidth;
+        let rect = track.getBoundingClientRect();
+        let touchX = e.touches[0].clientX - rect.left;
+        let percent = clamp((touchX-thumbWidth/2)/(trackWidth-thumbWidth),0,1);
+        scrollPianoToPercent(percent);
+      },{passive:false});
+      const pianoContainer = document.querySelector('.piano-container');
+      pianoContainer.addEventListener('scroll', updateScrollbarThumb);
     }
-    async function playNote(note, keyElement) {
-      if (!isAudioActivated) { showAlert("Bạn cần bật âm bằng nút 🔇 trước khi chơi đàn!"); return; }
-      initAudioContext();
-      if (keyElement) {
-        keyElement.classList.add('active');
-        setTimeout(() => { keyElement.classList.remove('active'); }, 200);
-      }
-      await ensureSamples();
-      let tNote = transposeNote(note, transpose);
-      playSample(tNote, 1.0, 1110);
-    }
-
-    // Transpose UI
+    // ========== KÍCH THƯỚC PHÍM ===========
+    const keySizeSlider = document.getElementById('keySizeSlider');
+    keySizeSlider.addEventListener('input', function() {
+      whiteKeyWidth = parseInt(this.value);
+      blackKeyWidth = Math.round(this.value*0.67);
+      whiteKeyHeight = 180 + (whiteKeyWidth-33)*2;
+      blackKeyHeight = Math.round(whiteKeyHeight*0.61);
+      renderPiano();
+    });
+    window.addEventListener('resize', function(){
+      renderPiano();
+      updateScrollbarThumb();
+    });
+    // ========== TRANSPOSE ===========
     function setTransposeUI() {
       let status = document.getElementById('transposeStatus');
       let txt = "Transpose: ";
-      if (transpose > 0) txt += "+"+transpose;
+      if (transpose > 0) txt += "+" + transpose;
       else if (transpose < 0) txt += transpose;
       else txt += "0";
       status.textContent = txt;
     }
-    // Chỉ trong [-12, +12]
-    document.addEventListener('DOMContentLoaded', ()=>{
-      document.getElementById('transposeUp').addEventListener('click', ()=>{
-        if(transpose<12){ transpose += 1; setTransposeUI();}
-      });
-      document.getElementById('transposeDown').addEventListener('click', ()=>{
-        if(transpose>-12){transpose -= 1; setTransposeUI();}
-      });
-      document.getElementById('transposeReset').addEventListener('click', ()=>{
-        transpose = 0; setTransposeUI();
-      });
-      setTransposeUI();
+    document.getElementById('transposeUp').addEventListener('click', ()=>{
+      if(transpose<12){transpose++;setTransposeUI();}
     });
-
-    // Nút âm thanh
+    document.getElementById('transposeDown').addEventListener('click', ()=>{
+      if(transpose>-12){transpose--;setTransposeUI();}
+    });
+    document.getElementById('transposeReset').addEventListener('click',()=>{
+      transpose=0;setTransposeUI();
+    });
+    setTransposeUI();
+    // ========== PHÁT ÂM VÀ XỬ LÝ SAMPLE ===========
+    function transposeNote(note, semitone) {
+      let m = note.match(/^([A-G]#?)(\d)$/);
+      if (!m) return note;
+      let noteName=m[1], octave=parseInt(m[2]);
+      let ni=chromatic.indexOf(noteName);
+      if(ni<0) return note;
+      let idx = (octave*12)+ni+semitone;
+      let newOctave = Math.floor(idx/12);
+      let newNi = ((idx%12)+12)%12;
+      let newNote = chromatic[newNi]+newOctave;
+      if(pianoNotesAll.indexOf(newNote) >= 0) return newNote;
+      return note;
+    }
+    async function playSample(note, volume=1.0, duration=1200){
+      if(!audioContext || !isAudioActivated) return;
+      let sampleBuffer=sampleBuffers[note], rootNote=note;
+      if(!sampleBuffer){
+        const availableNotes=Object.keys(sampleBuffers).filter(n=>sampleBuffers[n]);
+        let minDiff=Infinity, bestNote=null;
+        for(const avail of availableNotes){
+          let diff=Math.abs(notesFreq[avail]-notesFreq[note]);
+          if(diff<minDiff){minDiff=diff;bestNote=avail;}
+        }
+        if(!bestNote) return;
+        sampleBuffer=sampleBuffers[bestNote]; rootNote=bestNote;
+      }
+      const src=audioContext.createBufferSource();
+      src.buffer=sampleBuffer;
+      let semitone=Math.log2(notesFreq[note]/notesFreq[rootNote])*12;
+      src.playbackRate.value=Math.pow(2,semitone/12);
+      const gainNode=audioContext.createGain();
+      gainNode.gain.value=volume;
+      gainNode.connect(audioContext.destination);
+      src.connect(gainNode);
+      src.start();
+      src.stop(audioContext.currentTime+Math.min(duration/1000,src.buffer.duration/src.playbackRate.value));
+    }
+    async function playNote(note, keyElement) {
+      if(!isAudioActivated){
+        showAlert("Bạn cần bật âm bằng nút 🔇 trước khi chơi đàn!");
+        return;
+      }
+      initAudioContext();
+      if(keyElement){
+        keyElement.classList.add('active');
+        setTimeout(()=>{keyElement.classList.remove('active');},200);
+      }
+      await ensureSamples();
+      let tNote=transposeNote(note, transpose);
+      playSample(tNote, 1.0, 1110);
+    }
+    // ========== ÂM THANH ===========
     const soundToggle = document.getElementById('soundToggle');
     const soundIcon = document.getElementById('soundIcon');
     const soundStatus = document.getElementById('soundStatus');
     soundToggle.addEventListener('click', async () => {
       if (isAudioActivated) return;
       soundToggle.disabled = true;
-      soundIcon.textContent = '⏳';
-      soundStatus.textContent = 'Đang kích hoạt...';
+      soundIcon.textContent = '⏳'; soundStatus.textContent = 'Đang kích hoạt...';
       try {
         initAudioContext();
-        const testAudio = new Audio('https://raw.githubusercontent.com/nhut990/files/refs/heads/main/tieng/E3_active_audio.mp3');
-        testAudio.volume = 0.3;
-        await new Promise((resolve,reject)=>{
-          testAudio.addEventListener('canplaythrough',()=>{
-            testAudio.play().then(()=>{
-              setTimeout(()=>{
-                testAudio.pause();
-                testAudio.currentTime=0;resolve();
-              },250);
-            }).catch(reject);
-          },{once:true});
-          testAudio.addEventListener('error',reject,{once:true});
-          testAudio.load();
-          setTimeout(()=>reject(new Error('Timeout')),4000);
-        });
         await audioContext.resume();
         isAudioActivated = true; isMuted = false;
         soundToggle.classList.remove('muted');
@@ -378,13 +486,60 @@
         alert('⚠️ Không thể kích hoạt âm thanh.\n\nLỗi: ' + error.message);
       }
     });
-
-    // ======== Khi load trang ========
+    // ========== DRAG PIANO =============
+    (function() {
+      const pianoContainer = document.querySelector('.piano-container');
+      let isPanning = false, startX = 0, scrollStart = 0;
+      pianoContainer.addEventListener('touchstart', function(e) {
+        if (e.target.classList.contains('white-key') || e.target.classList.contains('black-key')) return;
+        if (e.touches.length === 1) {
+          isPanning = true;
+          startX = e.touches[0].clientX;
+          scrollStart = pianoContainer.scrollLeft;
+          pianoContainer.style.cursor = 'grabbing';
+          e.preventDefault();
+        }
+      });
+      pianoContainer.addEventListener('touchmove', function(e){
+        if (isPanning && e.touches.length === 1) {
+          let dx = startX - e.touches[0].clientX;
+          pianoContainer.scrollLeft = scrollStart + dx;
+          e.preventDefault();
+        }
+      });
+      pianoContainer.addEventListener('touchend', function(){
+        isPanning = false;
+        pianoContainer.style.cursor = '';
+      });
+      pianoContainer.addEventListener('mousedown', function(e) {
+        if (e.target.classList.contains('white-key') || e.target.classList.contains('black-key')) return;
+        isPanning = true;
+        startX = e.clientX;
+        scrollStart = pianoContainer.scrollLeft;
+        pianoContainer.style.cursor = 'grabbing';
+        e.preventDefault();
+      });
+      window.addEventListener('mousemove', function(e){
+        if (isPanning) {
+          let dx = startX - e.clientX;
+          pianoContainer.scrollLeft = scrollStart + dx;
+        }
+      });
+      window.addEventListener('mouseup', function(){
+        if (isPanning) {
+          isPanning = false;
+          pianoContainer.style.cursor = '';
+        }
+      });
+    })();
+    // ======= KHỞI TẠO =======
     window.addEventListener('load', async () => {
       initAudioContext();
       await ensureSamples();
       renderPiano();
       document.getElementById('loadingStatus').style.display = 'none';
+      initScrollbarEvents();
+      updateScrollbarThumb();
     });
   </script>
 </body>
