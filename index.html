@@ -72,7 +72,26 @@
       box-shadow: 0 2px 4px rgba(0,0,0,0.52); transition: all 0.05s;}
     .black-key.active { background: linear-gradient(137deg, #2ac7ec 0%, #76e2ff 100%); color: #1d8a95;}
     .black-key:active { background: linear-gradient(137deg, #b3e5fc 0%, #2ac7ec 100%);}
-    .created-by-footer { text-align: center; color: #fff; font-size: 15px; opacity: 0.91; margin: 29px auto 12px auto; width: 100%; }
+    .created-by-footer { text-align: center; color: #fff; font-size: 15px; opacity: 0.91; margin: 29px auto 4px auto; width: 100%; }
+    .code-links-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 28px;
+      margin-bottom: 18px;
+      margin-top: 2px;
+    }
+    .code-links-row a {
+      color: #FFD700;
+      font-weight: bold;
+      font-size: 16px;
+      text-decoration: underline;
+      transition: color 0.19s;
+    }
+    .code-links-row a:hover {
+      color: #fff700;
+      text-shadow: 0 2px 7px #0078a9;
+    }
 
     .piano-scrollbar-container {
       width: 100%; margin: 2px auto 0 auto; user-select: none; touch-action: none;
@@ -129,11 +148,13 @@
     @media(max-width: 1000px){
       .container{padding:13px 0;}
       .piano-scrollbar-container, .piano-container { width: 100%; max-width: 100vw;}
+      .code-links-row { gap: 18px; font-size: 15px;}
     }
     @media (max-width: 700px){
       .piano-container{padding:3px;}
       .container{padding:6px 0;}
       .piano-scrollbar-container, .piano-container{max-width:99vw; width:99vw;}
+      .code-links-row { gap: 10px; font-size: 14px;}
     }
   </style>
 </head>
@@ -170,9 +191,14 @@
     </div>
   </div>
   <div class="created-by-footer">Created by Minh Nhựt</div>
+  <div class="code-links-row">
+    <a href="https://nhut990.github.io/piano/2/" target="_blank">Piano_2</a>
+    <a href="https://nhut990.github.io/piano/3/" target="_blank">Piano_3</a>
+    <a href="https://nhut990.github.io/piano/4/" target="_blank">Piano_4</a>
+    <a href="https://nhut990.github.io/piano/5/" target="_blank">Piano_5</a>
+  </div>
   <script>
-    // ... (JS đầy đủ như ở các file trước. Không đổi chức năng nào.)
-    // JS Piano Nhựt phía dưới giữ nguyên!
+    // ... (JS đầy đủ như ở phần trước, không thay đổi)
     const WHITE_NOTES = [
       "C2","D2","E2","F2","G2","A2","B2",
       "C3","D3","E3","F3","G3","A3","B3",
