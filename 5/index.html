@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Đàn Piano Acoustic Grand + Transpose + Size + Kéo</title>
+  <title>🎹 Piano Nhựt</title>
   <style>
     body { font-family: Arial, sans-serif; background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); margin:0; padding:0; min-height:100vh; }
     .container { width:100%; max-width:1600px; margin:auto; position:relative; padding:28px 0 14px;}
     h1 { color: #FFD700; text-align: center; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); margin: 0 0 10px 0;}
     .sound-control {
-      position: absolute; top: 10px; right: 14px;
-      display: flex; flex-direction: column; align-items: center; z-index: 100;
+      display: flex; justify-content: center; align-items: center; gap: 9px;
+      margin-bottom: 9px;
     }
     .sound-toggle { background: linear-gradient(145deg, #2ac7ec, #1594bb); color: white; border: none;
       border-radius: 50%; width: 36px; height: 36px; font-size: 19px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.22);
@@ -20,9 +20,18 @@
     .sound-status { color: white; font-size: 12px; font-weight: bold; margin-top: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.14); }
 
     .transpose-control { display:flex; justify-content:center; align-items:center; margin:10px 0 12px 0; gap:15px;}
-    .transpose-btn { background: linear-gradient(135deg, #2ac7ec, #7B1FA2); color: #fff; border:none; border-radius: 7px; padding:4px 14px; font-size:17px; font-weight:bold; cursor:pointer; transition:all 0.14s;}
-    .transpose-btn:active {transform:scale(0.98);}
-    .transpose-reset { cursor:pointer; color:#FFD700; text-decoration:underline;}
+    .transpose-btn, .transpose-reset-btn {
+      background: linear-gradient(135deg, #2ac7ec, #7B1FA2); color: #fff; border:none; border-radius: 7px; padding:4px 14px; 
+      font-size:17px; font-weight:bold; cursor:pointer; transition:all 0.14s; min-width:48px; 
+      box-sizing: border-box;
+      display: inline-block;
+    }
+    .transpose-btn:active, .transpose-reset-btn:active {transform:scale(0.98);}
+    .transpose-reset-btn {
+      font-weight:bold; /* Giữ font nổi bật */
+      /* Nếu muốn màu khác thì chỉnh background hoặc color tại đây */
+      /* border: 2px solid #FFC107; */
+    }
     .transpose-status { color:#FFD700; font-size:15px; font-weight:bold; letter-spacing:1px;}
     .created-by-footer { text-align: center; color: #fff; font-size: 15px; opacity: 0.91; margin: 28px auto 14px auto; width: 100%; }
 
@@ -110,11 +119,13 @@
     @media(max-width: 1000px){
       .container{padding:13px 0;}
       .piano-scrollbar-container, .piano-container { width: 100%; max-width: 100vw;}
+      .sound-control{margin-bottom: 7px;}
     }
     @media (max-width: 700px){
       .piano-container{padding:3px;}
       .container{padding:6px 0;}
       .piano-scrollbar-container, .piano-container{max-width:99vw; width:99vw;}
+      .sound-control{margin-bottom: 7px;}
     }
   </style>
 </head>
@@ -126,12 +137,12 @@
       </button>
       <span class="sound-status" id="soundStatus">Tắt âm</span>
     </div>
-    <h1>🎹 Piano Acoustic Grand + Transpose</h1>
+    <h1>🎹 Piano Nhựt</h1>
     <div class="transpose-control">
       <button class="transpose-btn" id="transposeDown">-1</button>
       <span class="transpose-status" id="transposeStatus">Transpose: 0</span>
       <button class="transpose-btn" id="transposeUp">+1</button>
-      <span class="transpose-reset" id="transposeReset" title="reset">[về 0]</span>
+      <button class="transpose-reset-btn" id="transposeReset" title="reset">Về 0</button>
     </div>
     <div class="control-bar">
       <span class="size-label">Kích thước phím:</span>
@@ -443,10 +454,12 @@
       src.playbackRate.value=Math.pow(2,semitone/12);
       const gainNode=audioContext.createGain();
       gainNode.gain.value=volume;
-      gainNode.connect(audioContext.destination);
       src.connect(gainNode);
+      gainNode.connect(audioContext.destination);
       src.start();
-      src.stop(audioContext.currentTime+Math.min(duration/1000,src.buffer.duration/src.playbackRate.value));
+      setTimeout(() => {
+        try{ src.stop(); }catch(e){}
+      }, duration);
     }
     async function playNote(note, keyElement) {
       if(!isAudioActivated){
