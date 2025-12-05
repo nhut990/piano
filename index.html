@@ -13,24 +13,17 @@
     body { font-family: Arial, sans-serif; background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); margin:0; padding:0; min-height:100vh; }
     .container { width:100%; max-width:1600px; margin:auto; position:relative; padding:28px 0 14px;}
     h1 { color: #FFD700; text-align: center; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); margin-bottom: 10px; display:flex; flex-direction:column; align-items:center; }
-
     .control-bar {
       text-align: center; margin-bottom: 9px;
       display: flex; justify-content: center; gap:14px; align-items:center; flex-wrap: wrap;
     }
-
-    .size-label {
-      color: #fff; font-weight: bold; font-size: 15px; margin-right:3px;
-    }
-    .size-slider {
-      width: 120px; height: 24px;
-    }
+    .size-label {color:#fff;font-weight:bold;font-size:15px;margin-right:3px;}
+    .size-slider {width: 120px;height: 24px;}
     .sound-control {
       text-align: center;
       margin-bottom: 9px;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      position: relative;
-      z-index: 101;
+      position: relative;z-index:101;
     }
     .sound-toggle { background: linear-gradient(145deg, #2ac7ec, #1594bb); color: white; border: none;
       border-radius: 50%; width: 36px; height: 36px; font-size: 19px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.22);
@@ -143,8 +136,6 @@
       opacity: 0.68;
       font-weight: bold;
     }
-
-    /* Responsive */
     @media(max-width: 1000px){
       .container{padding:13px 0;}
       .piano-scrollbar-container, .piano-container { width: 100%; max-width: 100vw;}
@@ -198,7 +189,6 @@
     <a href="https://nhut990.github.io/piano/5/" target="_blank">Piano_5</a>
   </div>
   <script>
-    // ... (JS đầy đủ như ở phần trước, không thay đổi)
     const WHITE_NOTES = [
       "C2","D2","E2","F2","G2","A2","B2",
       "C3","D3","E3","F3","G3","A3","B3",
@@ -349,6 +339,7 @@
       });
       updateScrollbarThumb();
     }
+    // ==== SỬA LỖI KHẸT - fade out âm lượng ====
     async function playSample(note, volume=1.0, duration=1200) {
       if (!audioContext || isMuted || !isAudioActivated) return;
       let sampleBuffer = sampleBuffers[note];
@@ -368,12 +359,18 @@
       src.buffer = sampleBuffer;
       let semitone = Math.log2(notesFreq[note] / notesFreq[rootNote]) * 12;
       src.playbackRate.value = Math.pow(2,semitone/12);
+
       const gainNode = audioContext.createGain();
-      gainNode.gain.value = volume;
+      // Thời gian chơi sample thực tế
+      const playTime = Math.min(duration / 1000, src.buffer.duration / src.playbackRate.value);
+      const fadeOutEnd = audioContext.currentTime + playTime;
+      gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.0001, fadeOutEnd);
+
       gainNode.connect(audioContext.destination);
       src.connect(gainNode);
       src.start();
-      src.stop(audioContext.currentTime + Math.min(duration/1000,src.buffer.duration/src.playbackRate.value));
+      src.stop(fadeOutEnd);
     }
     async function playKeyNote(note,keyElement) {
       if (!isAudioActivated) { showAlert("Bật âm bằng nút 🔇 trước khi chơi!"); return; }
@@ -502,7 +499,6 @@
         }
       });
     })();
-
     function clamp(val, min, max) { return Math.max(min, Math.min(max, val)); }
     function updateScrollbarThumb() {
       const pianoContainer = document.querySelector('.piano-container');
