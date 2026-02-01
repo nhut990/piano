@@ -1,579 +1,385 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Piano_Nhựt</title>
-  <!-- Icon cho iOS và Web -->
-  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/nhut990/files/refs/heads/main/hinh/icon_piano.jpg">
-  <meta name="apple-mobile-web-app-title" content="Piano_Nhựt">
-  <meta name="application-name" content="Piano_Nhựt">
-  <link rel="icon" type="image/jpeg" href="https://raw.githubusercontent.com/nhut990/files/refs/heads/main/hinh/icon_piano.jpg">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content="Minh Nhựt Audio - nghe nhạc và radio trực tuyến" />
+  <title>Minh Nhựt Audio</title>
+  <link rel="icon" href="https://raw.githubusercontent.com/nhut990/files/refs/heads/main/hinh/Logo_minhnhut.png">
   <style>
-    body { font-family: Arial, sans-serif; background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); margin:0; padding:0; min-height:100vh; }
-    .container { width:100%; max-width:1600px; margin:auto; position:relative; padding:28px 0 14px;}
-    h1 { color: #FFD700; text-align: center; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); margin-bottom: 10px; display:flex; flex-direction:column; align-items:center; }
-    .control-bar {
-      text-align: center; margin-bottom: 9px;
-      display: flex; justify-content: center; gap:14px; align-items:center; flex-wrap: wrap;
-    }
-    .size-label {color:#fff;font-weight:bold;font-size:15px;margin-right:3px;}
-    .size-slider {width: 120px;height: 24px;}
-    .sound-control {
+    @keyframes blink { 0%{opacity:1}50%{opacity:0}100%{opacity:1} }
+    body{font-family:Arial, Helvetica, sans-serif; color:#222; margin:0; padding:20px 10px;}
+    #clock{font-family:monospace; letter-spacing:2px; text-align:center; margin-bottom:10px;}
+    .center { text-align:center; }
+
+    .radio-box {
+      width: 220px;
+      margin: 15px auto;
+      padding: 8px;
       text-align: center;
-      margin-bottom: 9px;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      position: relative;z-index:101;
+      background: linear-gradient(45deg, #ff8800, #ffcc00);
+      border-radius: 10px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.15);
+      position: relative;
     }
-    .sound-toggle { background: linear-gradient(145deg, #2ac7ec, #1594bb); color: white; border: none;
-      border-radius: 50%; width: 36px; height: 36px; font-size: 19px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.22);
-      transition: all 0.2s; display: flex; align-items: center; justify-content: center;}
-    .sound-toggle.muted { background: linear-gradient(145deg, #f44336, #d32f2f);}
-    .sound-toggle:active { transform: scale(0.96); }
-    .sound-status { color: white; font-size: 12px; font-weight: bold; margin-top: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.14); }
-    .loading-status { text-align: center; color: #FFD700; font-size: 13px; margin: 7px 0 10px 0; font-weight: bold; pointer-events:none;}
-    #alert { text-align: center; color: #f44336; background: #fff2f2; border-radius: 7px; font-size: 14px; font-weight:bold;
-      margin: 11px auto 0 auto; max-width: 320px; padding: 8px 11px; display: none; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border: 1px solid #ffd9d9;
+    .radio-title { font-weight:bold; color:red; margin-bottom:6px; font-size:14px; }
+    .radio-btn {
+      background:#d32f2f;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:13px;
+    }
+    .radio-btn:hover{ background:#b71c1c; }
+
+    .wave {
+      display:flex;justify-content:center;align-items:flex-end;gap:3px;height:18px;margin-top:6px;
+    }
+    .wave span { display:block;width:3px;background:red;animation:waveAnim 1s infinite ease-in-out;border-radius:2px;opacity:0.6; }
+    .wave span:nth-child(1){animation-delay:0s} .wave span:nth-child(2){animation-delay:0.2s}
+    .wave span:nth-child(3){animation-delay:0.4s} .wave span:nth-child(4){animation-delay:0.6s}
+    .wave span:nth-child(5){animation-delay:0.8s}
+    @keyframes waveAnim { 0%,100%{height:4px}50%{height:14px} }
+    .radio-box:not(.playing) .wave { opacity:0; transition:opacity .2s; }
+
+    audio { width:90%; max-width:640px; margin:8px auto; display:block; }
+
+    footer {
+      background: linear-gradient(135deg, #00c6ff, #0072ff);
+      padding: 15px 0; text-align:center; color:white; font-size:14px; margin-top:18px;
     }
 
-    .piano-container {
-      background: rgba(0,0,0,0.27); backdrop-filter: blur(8px);
-      border-radius: 10px; padding: 0px; box-shadow: 0 9px 28px rgba(0,0,0,0.39);
-      margin: auto;
-      width: 100%; overflow-x: auto;
-      transition: all 0.2s;
-      cursor: grab;
-      position: relative;
-      box-sizing: border-box;
-    }
-    .piano {
-      position: relative; height: 180px;
-      margin: 0 auto;
-      user-select: none;
-      transition: all 0.25s;
-      box-sizing: border-box;
-      /* width sẽ đặt động bằng JS */
-    }
-    .white-key { position: absolute; background: linear-gradient(to bottom, #fff 0%, #ececec 100%);
-      border: 2px solid #222; border-radius: 0 0 6px 6px; cursor: pointer; user-select: none; display: flex;
-      align-items: flex-end; justify-content: center; font-size: 9px; color: #555; font-weight: bold; transition: all 0.06s;}
-    .white-key.active { background: linear-gradient(137deg, #2ac7ec 0%, #76e2ff 100%); color: #1d8a95;}
-    .white-key:active { background: linear-gradient(137deg, #b3e5fc 0%, #2ac7ec 100%);}
-    .black-key { position: absolute; background: linear-gradient(to bottom, #444 0%, #091a21 100%);
-      border: 1px solid #111; border-radius: 0 0 4px 4px; cursor: pointer; user-select: none; z-index: 9; color: white;
-      display: flex; align-items: flex-end; justify-content: center; font-size: 7px; font-weight: bold;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.52); transition: all 0.05s;}
-    .black-key.active { background: linear-gradient(137deg, #2ac7ec 0%, #76e2ff 100%); color: #1d8a95;}
-    .black-key:active { background: linear-gradient(137deg, #b3e5fc 0%, #2ac7ec 100%);}
-    .created-by-footer { text-align: center; color: #fff; font-size: 15px; opacity: 0.91; margin: 29px auto 4px auto; width: 100%; }
-    .code-links-row {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 28px;
-      margin-bottom: 18px;
-      margin-top: 2px;
-    }
-    .code-links-row a {
-      color: #FFD700;
-      font-weight: bold;
-      font-size: 16px;
-      text-decoration: underline;
-      transition: color 0.19s;
-    }
-    .code-links-row a:hover {
-      color: #fff700;
-      text-shadow: 0 2px 7px #0078a9;
+    @media (max-width:500px){
+      .radio-box{ width:90% }
+      .radio-btn{ font-size:12px; padding:5px 10px }
     }
 
-    .piano-scrollbar-container {
-      width: 100%; margin: 2px auto 0 auto; user-select: none; touch-action: none;
-      padding-bottom: 2px;
-      background: rgba(40,50,140,0.08);
-      border-radius: 9px;
-      display: flex; align-items: center; justify-content: center;
-      box-sizing: border-box;
-    }
-    .piano-scrollbar-track {
-      position: relative;
-      width: 98%; height: 38px;
-      background: linear-gradient(90deg,#fff 20%, #e4e4ef 70%);
-      border-radius: 19px;
-      box-shadow: 0 1px 7px rgba(0,0,0,0.16);
-      overflow: hidden;
-      margin: auto;
-      display: flex; align-items: center;
-    }
-    .piano-scrollbar-thumb {
-      position: absolute;
-      top: 0;
-      height: 98%;
-      width: 62px;
-      background: linear-gradient(135deg,#6656df 0%,#43dafc 100%);
-      border-radius: 16px;
-      cursor: pointer;
-      box-shadow: 0 3px 12px rgba(76,89,255,0.23);
-      border: 2px solid #FFF3;
-      display: flex; align-items: center; justify-content: center;
-      font-weight: bold; color: #fff; font-size: 16px; text-shadow: 0 1px 4px #6669;
-      transition: box-shadow 0.11s, left 0.18s cubic-bezier(0.7,0,0.3,1);
-      z-index: 3;
-    }
-    .piano-scrollbar-thumb:active {
-      box-shadow: 0 4px 16px rgba(40,50,140,0.19);
-      background: linear-gradient(135deg,#43dafc 0%,#6656df 100%);
-    }
-    .piano-scrollbar-labels {
-      position: absolute;
-      width: 100%; height: 100%; top: 0; left: 0;
-      display: flex; align-items: center; pointer-events: none;
-    }
-    .piano-scrollbar-label {
-      flex: 1;
-      text-align: center;
-      font-size: 11px;
-      color: #443;
-      opacity: 0.68;
-      font-weight: bold;
-    }
-    @media(max-width: 1000px){
-      .container{padding:13px 0;}
-      .piano-scrollbar-container, .piano-container { width: 100%; max-width: 100vw;}
-      .code-links-row { gap: 18px; font-size: 15px;}
-    }
-    @media (max-width: 700px){
-      .piano-container{padding:3px;}
-      .container{padding:6px 0;}
-      .piano-scrollbar-container, .piano-container{max-width:99vw; width:99vw;}
-      .code-links-row { gap: 10px; font-size: 14px;}
-    }
+    /* small helper for fallback messages */
+    .hint { font-size:12px; color:#333; margin-top:6px; }
   </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 </head>
 <body>
-  <div class="container">
-    <div class="sound-control">
-      <button class="sound-toggle muted" id="soundToggle">
-        <span id="soundIcon">🔇</span>
-      </button>
-      <span class="sound-status" id="soundStatus">Tắt âm</span>
-    </div>
-    <h1>Piano_Nhựt<br /><span style="font-size:20px; color:#ffd700; font-weight:normal">🎹 Đàn Piano 72 phím (C2-B7)</span></h1>
-    <div class="control-bar">
-      <span class="size-label">Kích thước phím:</span>
-      <input type="range" min="18" max="54" value="33" step="1" class="size-slider" id="keySizeSlider">
-    </div>
-    <div class="piano-scrollbar-container">
-      <div class="piano-scrollbar-track" id="pianoScrollbarTrack">
-        <div class="piano-scrollbar-thumb" id="pianoScrollbarThumb">⇆</div>
-        <div class="piano-scrollbar-labels">
-          <span class="piano-scrollbar-label">C2</span>
-          <span class="piano-scrollbar-label">C3</span>
-          <span class="piano-scrollbar-label">C4</span>
-          <span class="piano-scrollbar-label">C5</span>
-          <span class="piano-scrollbar-label">C6</span>
-          <span class="piano-scrollbar-label">C7</span>
-        </div>
-      </div>
-    </div>
-    <div class="loading-status" id="loadingStatus">⏳ Đang tải Piano...</div>
-    <div id="alert"></div>
-    <div class="piano-container">
-      <div class="piano" id="piano"></div>
-    </div>
-  </div>
-  <div class="created-by-footer">Created by Minh Nhựt</div>
-  <div class="code-links-row">
-    <a href="https://nhut990.github.io/piano/2/" target="_blank">Piano_2</a>
-    <a href="https://nhut990.github.io/piano/3/" target="_blank">Piano_3</a>
-    <a href="https://nhut990.github.io/piano/4/" target="_blank">Piano_4</a>
-    <a href="https://nhut990.github.io/piano/5/" target="_blank">Piano_5</a>
-  </div>
+  <div id="device-info" class="center" style="margin-bottom:6px;"></div>
+  <div id="clock" class="center" role="status" aria-live="polite" style="font-size:18px; font-weight:bold; color:#111;"></div>
+
   <script>
-    const WHITE_NOTES = [
-      "C2","D2","E2","F2","G2","A2","B2",
-      "C3","D3","E3","F3","G3","A3","B3",
-      "C4","D4","E4","F4","G4","A4","B4",
-      "C5","D5","E5","F5","G5","A5","B5",
-      "C6","D6","E6","F6","G6","A6","B6",
-      "C7","D7","E7","F7","G7","A7","B7"
-    ];
-    const BLACK_NOTES_LAYOUT = [
-      {note:"C#2",pos:"C2"}, {note:"D#2",pos:"D2"},
-      {note:"F#2",pos:"F2"}, {note:"G#2",pos:"G2"}, {note:"A#2",pos:"A2"},
-      {note:"C#3",pos:"C3"}, {note:"D#3",pos:"D3"},
-      {note:"F#3",pos:"F3"}, {note:"G#3",pos:"G3"}, {note:"A#3",pos:"A3"},
-      {note:"C#4",pos:"C4"}, {note:"D#4",pos:"D4"},
-      {note:"F#4",pos:"F4"}, {note:"G#4",pos:"G4"}, {note:"A#4",pos:"A4"},
-      {note:"C#5",pos:"C5"}, {note:"D#5",pos:"D5"},
-      {note:"F#5",pos:"F5"}, {note:"G#5",pos:"G5"}, {note:"A#5",pos:"A5"},
-      {note:"C#6",pos:"C6"}, {note:"D#6",pos:"D6"},
-      {note:"F#6",pos:"F6"}, {note:"G#6",pos:"G6"}, {note:"A#6",pos:"A6"},
-      {note:"C#7",pos:"C7"}, {note:"D#7",pos:"D7"},
-      {note:"F#7",pos:"F7"}, {note:"G#7",pos:"G7"}, {note:"A#7",pos:"A7"},
-    ];
-    let whiteKeyWidth = 33, blackKeyWidth = 22, whiteKeyHeight = 180, blackKeyHeight = 110;
-    function getWhiteKeyPosX() {
-      let obj = {};
-      WHITE_NOTES.forEach((note,i)=>{obj[note]=i*whiteKeyWidth;});
-      return obj;
-    }
-    const pianoNotesAll = WHITE_NOTES.concat(BLACK_NOTES_LAYOUT.map(n=>n.note)).sort((a,b) => {
-      function noteMidi(note) {
-        const ORDER = {"C":0,"C#":1,"D":2,"D#":3,"E":4,"F":5,"F#":6,"G":7,"G#":8,"A":9,"A#":10,"B":11};
-        let m = note.match(/^([A-G]#?)(\d)$/);
-        return 12*(parseInt(m[2])+1) + ORDER[m[1]];
-      }
-      return noteMidi(a)-noteMidi(b);
-    });
-    const notesFreq = {};
-    pianoNotesAll.forEach(function(note){
-      const ORDER = {"C":0,"C#":1,"D":2,"D#":3,"E":4,"F":5,"F#":6,"G":7,"G#":8,"A":9,"A#":10,"B":11};
-      let m = note.match(/^([A-G]#?)(\d)$/);
-      let midi = 12*(parseInt(m[2])+1)+ORDER[m[1]];
-      notesFreq[note]=440 * Math.pow(2, (midi-69)/12);
-    });
-    const sampleInstrument = { name: '🎹 Acoustic Grand Piano', folder: 'acoustic_grand_piano-mp3' };
-    const sampleBaseURL = "https://raw.githubusercontent.com/Nhut11790/nhut11790.github.io/main/tieng/";
-    let audioContext = null;
-    let isMuted = true, isAudioActivated = false;
-    let sampleBuffers = {};
-    let hasPreload = false;
-    function initAudioContext() {
-      if (!audioContext) { audioContext = new (window.AudioContext || window.webkitAudioContext)(); }
-      if (audioContext.state === 'suspended') audioContext.resume();
-    }
-    function convertSharpToFlat(note) {
-      const sharpToFlat = { 'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb' };
-      for (let sharp in sharpToFlat) {
-        if (note.startsWith(sharp)) return note.replace(sharp, sharpToFlat[sharp]);
-      }
-      return note;
-    }
-    async function preloadSamples() {
-      let notesList = pianoNotesAll;
-      let folder = sampleInstrument.folder;
-      let successCount = 0;
-      document.getElementById('loadingStatus').textContent = `⏳ Đang tải Piano...`;
-      let promises = notesList.map(note => {
-        let flatNote = convertSharpToFlat(note);
-        let fileName = flatNote + '.mp3';
-        let url = `${sampleBaseURL}${folder}/${fileName}`;
-        return fetch(url)
-          .then(res => res.ok ? res.arrayBuffer() : null)
-          .then(buf => buf ? audioContext.decodeAudioData(buf) : null)
-          .then(audioBuf => { 
-            if(audioBuf) { sampleBuffers[note] = audioBuf; successCount++;
-              document.getElementById('loadingStatus').textContent = `⏳ Đang tải Piano... (${successCount}/${notesList.length})`;
-            }
-          }).catch(()=>{});
-      });
-      await Promise.all(promises);
-      if (successCount === 0) {
-        document.getElementById('loadingStatus').textContent = `❌ Không thể tải piano`;
-      } else {
-        document.getElementById('loadingStatus').textContent = `✅ Đã tải Piano`;
-        setTimeout(() => { document.getElementById('loadingStatus').style.display = 'none'; },1300);
-      }
-      hasPreload = true;
-    }
-    async function ensureSamples() {
-      initAudioContext();
-      if (!hasPreload) {
-        document.getElementById('loadingStatus').style.display = 'block';
-        await preloadSamples();
-      }
-    }
-    function showAlert(msg) {
-      const alertBox = document.getElementById("alert");
-      alertBox.textContent = msg;
-      alertBox.style.display = "block";
-      setTimeout(() => { alertBox.style.display = "none"; }, 2100);
-    }
-    function renderPiano() {
-      const whiteKeyPosX = getWhiteKeyPosX();
-      const pianoDiv = document.getElementById('piano');
-      pianoDiv.innerHTML = '';
-      pianoDiv.style.height = whiteKeyHeight + "px";
-      const trueWidth = WHITE_NOTES.length * whiteKeyWidth;
-      pianoDiv.style.width = trueWidth + "px";
-      const pianoContainer = document.querySelector('.piano-container');
-      pianoContainer.style.maxWidth = trueWidth + "px";
-      pianoContainer.style.width = "100%";
-      WHITE_NOTES.forEach((note, i) => {
-        const key = document.createElement('div');
-        key.className = 'white-key';
-        key.dataset.note = note;
-        key.textContent = note;
-        key.style.left = `${whiteKeyPosX[note]}px`;
-        key.id = 'key_'+note;
-        key.tabIndex = 0;
-        key.style.width = whiteKeyWidth+"px";
-        key.style.height = whiteKeyHeight+"px";
-        key.style.paddingBottom = Math.round(whiteKeyHeight/45)+"px";
-        key.style.fontSize = Math.max(9,Math.round(whiteKeyWidth/3))+"px";
-        key.addEventListener('mousedown', () => { key.classList.add('active'); playKeyNote(note,key); });
-        key.addEventListener('touchstart', (e) => { e.preventDefault(); key.classList.add('active'); playKeyNote(note,key); });
-        key.addEventListener('mouseup', () => { key.classList.remove('active'); });
-        key.addEventListener('mouseleave', () => { key.classList.remove('active'); });
-        key.addEventListener('touchend', () => { key.classList.remove('active'); });
-        pianoDiv.appendChild(key);
-      });
-      BLACK_NOTES_LAYOUT.forEach(bl=>{
-        const key = document.createElement('div');
-        key.className = 'black-key';
-        key.dataset.note = bl.note;
-        key.textContent = bl.note;
-        key.style.left = `${whiteKeyPosX[bl.pos]+(whiteKeyWidth - blackKeyWidth/2)}px`;
-        key.id = 'key_'+bl.note;
-        key.tabIndex = 0;
-        key.style.width = blackKeyWidth+"px";
-        key.style.height = blackKeyHeight+"px";
-        key.style.paddingBottom = Math.round(blackKeyHeight/35)+"px";
-        key.style.fontSize = Math.max(7,Math.round(blackKeyWidth/4))+"px";
-        key.addEventListener('mousedown', () => { key.classList.add('active'); playKeyNote(bl.note,key); });
-        key.addEventListener('touchstart', (e) => { e.preventDefault(); key.classList.add('active'); playKeyNote(bl.note,key); });
-        key.addEventListener('mouseup', () => { key.classList.remove('active'); });
-        key.addEventListener('mouseleave', () => { key.classList.remove('active'); });
-        key.addEventListener('touchend', () => { key.classList.remove('active'); });
-        pianoDiv.appendChild(key);
-      });
-      updateScrollbarThumb();
-    }
-    // ==== SỬA LỖI KHẸT - fade out âm lượng ====
-    async function playSample(note, volume=1.0, duration=1200) {
-      if (!audioContext || isMuted || !isAudioActivated) return;
-      let sampleBuffer = sampleBuffers[note];
-      let rootNote = note;
-      if (!sampleBuffer) {
-        const availableNotes = Object.keys(sampleBuffers).filter(n => sampleBuffers[n]);
-        let minDiff = Infinity, bestNote=null;
-        for(const avail of availableNotes){
-          let diff = Math.abs(notesFreq[avail] - notesFreq[note]);
-          if(diff < minDiff){minDiff=diff;bestNote=avail;}
-        }
-        if (!bestNote) return;
-        sampleBuffer = sampleBuffers[bestNote];
-        rootNote = bestNote;
-      }
-      const src = audioContext.createBufferSource();
-      src.buffer = sampleBuffer;
-      let semitone = Math.log2(notesFreq[note] / notesFreq[rootNote]) * 12;
-      src.playbackRate.value = Math.pow(2,semitone/12);
+    function detectDevice(){
+      let ua = navigator.userAgent;
+      let os="Không xác định", device="Không rõ thiết bị", version="";
 
-      const gainNode = audioContext.createGain();
-      // Thời gian chơi sample thực tế
-      const playTime = Math.min(duration / 1000, src.buffer.duration / src.playbackRate.value);
-      const fadeOutEnd = audioContext.currentTime + playTime;
-      gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
-      gainNode.gain.linearRampToValueAtTime(0.0001, fadeOutEnd);
+      if(/iPhone|iPad|iPod/i.test(ua)){
+        os="iOS"; device = /iPad/i.test(ua) ? "iPad" : "iPhone";
+        let match = ua.match(/OS (\d+[_\.\d]*) like Mac OS X/);
+        if(match) version = " " + match[1].replace(/_/g,'.');
+      } else if(/Android/i.test(ua)){
+        os="Android"; device="Thiết bị Android";
+        let match = ua.match(/Android\s([\d\.]+)/);
+        if(match) version = " " + match[1];
+      } else if(/Windows NT/i.test(ua)){
+        os="Windows"; device="Máy tính";
+        let match = ua.match(/Windows NT ([\d\.]+)/);
+        if(match){
+          const map={"10.0":"10","6.3":"8.1","6.2":"8","6.1":"7"};
+          version = " " + (map[match[1]] || match[1]);
+        }
+      } else if(/Mac OS X/i.test(ua)){
+        os="macOS"; device="Mac";
+        let match = ua.match(/Mac OS X (\d+[_\.\d]*)/);
+        if(match) version = " " + match[1].replace(/_/g,'.');
+      }
 
-      gainNode.connect(audioContext.destination);
-      src.connect(gainNode);
-      src.start();
-      src.stop(fadeOutEnd);
+      document.getElementById('device-info').innerHTML = `<b>${device}</b> - <b>${os}${version}</b>`;
     }
-    async function playKeyNote(note,keyElement) {
-      if (!isAudioActivated) { showAlert("Bật âm bằng nút 🔇 trước khi chơi!"); return; }
-      initAudioContext();
-      if (keyElement) {
-        keyElement.classList.add('active');
-        setTimeout(() => { keyElement.classList.remove('active'); }, 200);
-      }
-      await ensureSamples();
-      playSample(note,1.0,1110);
+
+    function updateClock(){
+      const now=new Date();
+      const h=String(now.getHours()).padStart(2,'0');
+      const m=String(now.getMinutes()).padStart(2,'0');
+      const s=String(now.getSeconds()).padStart(2,'0');
+      document.getElementById('clock').innerHTML = `<span style="color:#00cc66">${h}:${m}</span> <span style="color:red">${s}</span>`;
     }
-    const soundToggle = document.getElementById('soundToggle');
-    const soundIcon = document.getElementById('soundIcon');
-    const soundStatus = document.getElementById('soundStatus');
-    soundToggle.addEventListener('click', async () => {
-      if (!isAudioActivated) {
-        soundToggle.disabled = true;
-        soundIcon.textContent = '⏳';
-        soundStatus.textContent = 'Đang kích hoạt...';
-        try {
-          initAudioContext();
-          const testAudio = new Audio('https://raw.githubusercontent.com/nhut990/files/refs/heads/main/tieng/E3_active_audio.mp3');
-          testAudio.volume = 0.3;
-          await new Promise((resolve,reject)=>{
-            testAudio.addEventListener('canplaythrough',()=>{
-              testAudio.play().then(()=>{
-                setTimeout(()=>{
-                  testAudio.pause();
-                  testAudio.currentTime=0;resolve();
-                },250);
-              }).catch(reject);
-            },{once:true});
-            testAudio.addEventListener('error',reject,{once:true});
-            testAudio.load();
-            setTimeout(()=>reject(new Error('Timeout')),4000);
-          });
-          await audioContext.resume();
-          isAudioActivated = true; isMuted = false;
-          soundToggle.classList.remove('muted');
-          soundToggle.style.opacity = '1';
-          soundToggle.style.cursor = 'pointer';
-          soundIcon.textContent = '🔊';
-          soundStatus.textContent = 'Âm thanh bật';
-          soundToggle.disabled = false;
-        } catch (error) {
-          soundToggle.disabled = false;
-          soundIcon.textContent = '🔇';
-          soundStatus.textContent = 'Thử lại';
-          alert('⚠️ Không thể kích hoạt âm thanh.\n\nLỗi: ' + error.message);
-        }
-      } else {
-        isMuted = !isMuted;
-        if (isMuted) {
-          soundToggle.classList.add('muted');
-          soundIcon.textContent = '🔇';
-          soundStatus.textContent = 'Tắt âm';
-        } else {
-          soundToggle.classList.remove('muted');
-          soundIcon.textContent = '🔊';
-          soundStatus.textContent = 'Âm thanh bật';
-        }
-      }
-    });
-    const keySizeSlider = document.getElementById('keySizeSlider');
-    keySizeSlider.addEventListener('input', function() {
-      whiteKeyWidth = parseInt(this.value);
-      blackKeyWidth = Math.round(this.value*0.67);
-      whiteKeyHeight = 180 + (whiteKeyWidth-33)*2;
-      blackKeyHeight = Math.round(whiteKeyHeight*0.61);
-      renderPiano();
-    });
-    window.addEventListener('resize', function(){
-      renderPiano();
-      updateScrollbarThumb();
-    });
-    window.addEventListener('load', async () => {
-      initAudioContext();
-      await ensureSamples();
-      renderPiano();
-      document.getElementById('loadingStatus').style.display = 'none';
-      initScrollbarEvents();
-      updateScrollbarThumb();
-    });
-    (function() {
-      const pianoContainer = document.querySelector('.piano-container');
-      let isPanning = false, startX = 0, scrollStart = 0;
-      pianoContainer.addEventListener('touchstart', function(e) {
-        if (e.target.classList.contains('white-key') || e.target.classList.contains('black-key')) return;
-        if (e.touches.length === 1) {
-          isPanning = true;
-          startX = e.touches[0].clientX;
-          scrollStart = pianoContainer.scrollLeft;
-          pianoContainer.style.cursor = 'grabbing';
-          e.preventDefault();
-        }
-      });
-      pianoContainer.addEventListener('touchmove', function(e){
-        if (isPanning && e.touches.length === 1) {
-          let dx = startX - e.touches[0].clientX;
-          pianoContainer.scrollLeft = scrollStart + dx;
-          e.preventDefault();
-        }
-      });
-      pianoContainer.addEventListener('touchend', function(){
-        isPanning = false;
-        pianoContainer.style.cursor = '';
-      });
-      pianoContainer.addEventListener('mousedown', function(e) {
-        if (e.target.classList.contains('white-key') || e.target.classList.contains('black-key')) return;
-        isPanning = true;
-        startX = e.clientX;
-        scrollStart = pianoContainer.scrollLeft;
-        pianoContainer.style.cursor = 'grabbing';
-        e.preventDefault();
-      });
-      window.addEventListener('mousemove', function(e){
-        if (isPanning) {
-          let dx = startX - e.clientX;
-          pianoContainer.scrollLeft = scrollStart + dx;
-        }
-      });
-      window.addEventListener('mouseup', function(){
-        if (isPanning) {
-          isPanning = false;
-          pianoContainer.style.cursor = '';
-        }
-      });
-    })();
-    function clamp(val, min, max) { return Math.max(min, Math.min(max, val)); }
-    function updateScrollbarThumb() {
-      const pianoContainer = document.querySelector('.piano-container');
-      const piano = document.getElementById('piano');
-      const scrollbarTrack = document.getElementById('pianoScrollbarTrack');
-      const thumb = document.getElementById('pianoScrollbarThumb');
-      const maxScroll = piano.scrollWidth - pianoContainer.clientWidth;
-      const thumbWidth = thumb.offsetWidth;
-      const trackWidth = scrollbarTrack.offsetWidth;
-      const percent = (pianoContainer.scrollLeft / (maxScroll||1));
-      thumb.style.left = clamp(percent*(trackWidth-thumbWidth),0,trackWidth-thumbWidth) + "px";
-    }
-    function scrollPianoToPercent(percent) {
-      const pianoContainer = document.querySelector('.piano-container');
-      const piano = document.getElementById('piano');
-      const maxScroll = piano.scrollWidth - pianoContainer.clientWidth;
-      pianoContainer.scrollLeft = percent * maxScroll;
-      updateScrollbarThumb();
-    }
-    function initScrollbarEvents() {
-      const thumb = document.getElementById('pianoScrollbarThumb');
-      const track = document.getElementById('pianoScrollbarTrack');
-      let isDragging = false, startX = 0, startLeft = 0, trackWidth = 0, thumbWidth = 0;
-      function onDown(e) {
-        isDragging = true;
-        startX = (e.touches ? e.touches[0].clientX : e.clientX);
-        startLeft = parseInt(thumb.style.left)||0;
-        trackWidth = track.offsetWidth;
-        thumbWidth = thumb.offsetWidth;
-        document.body.style.userSelect = 'none';
-        thumb.style.transition = 'none';
-        e.preventDefault();
-      }
-      function onMove(e) {
-        if (!isDragging) return;
-        const currX = (e.touches ? e.touches[0].clientX : e.clientX);
-        let dx = currX - startX;
-        let newLeft = clamp(startLeft + dx, 0, trackWidth - thumbWidth);
-        thumb.style.left = newLeft + "px";
-        let percent = newLeft / (trackWidth - thumbWidth);
-        scrollPianoToPercent(percent);
-      }
-      function onUp(e) {
-        if(isDragging){
-          isDragging = false;
-          document.body.style.userSelect = '';
-          thumb.style.transition = '';
-        }
-      }
-      thumb.addEventListener('mousedown', onDown);
-      window.addEventListener('mousemove', onMove);
-      window.addEventListener('mouseup', onUp);
-      thumb.addEventListener('touchstart', onDown);
-      window.addEventListener('touchmove', onMove, {passive:false});
-      window.addEventListener('touchend', onUp);
-      track.addEventListener('mousedown', function(e){
-        if(e.target === thumb) return;
-        trackWidth = track.offsetWidth;
-        thumbWidth = thumb.offsetWidth;
-        let clickX = e.offsetX;
-        let percent = clamp((clickX-thumbWidth/2)/(trackWidth-thumbWidth),0,1);
-        scrollPianoToPercent(percent);
-      });
-      track.addEventListener('touchstart', function(e){
-        if(e.target === thumb) return;
-        trackWidth = track.offsetWidth;
-        thumbWidth = thumb.offsetWidth;
-        let rect = track.getBoundingClientRect();
-        let touchX = e.touches[0].clientX - rect.left;
-        let percent = clamp((touchX-thumbWidth/2)/(trackWidth-thumbWidth),0,1);
-        scrollPianoToPercent(percent);
-      },{passive:false});
-      const pianoContainer = document.querySelector('.piano-container');
-      pianoContainer.addEventListener('scroll', updateScrollbarThumb);
-    }
+
+    detectDevice();
+    setInterval(updateClock,1000);
+    updateClock();
   </script>
+
+  <!-- ======= DANH SÁCH NHẠC ======= -->
+  <div class="center" style="margin-top:10px;">
+    <div style="font-size:16px;font-weight:700;color:#333;margin-bottom:8px;">Nhạc Thiền Tĩnh Tâm An Lạc</div>
+    <audio controls preload="auto" playsinline>
+      <source src="https://github.com/nhut990/files/releases/download/v1.0_music/Nhac.Thien.Tinh.Tam.An.Lac.6h.mp3" type="audio/mpeg">
+      Trình duyệt của bạn không hỗ trợ thẻ audio.
+    </audio>
+  </div>
+
+  <div class="center" style="margin-top:10px;">
+    <div style="font-weight:700;margin-bottom:6px;">The Moment - Kenny G</div>
+    <audio controls preload="none" playsinline>
+      <source src="https://github.com/nhut990/files/raw/refs/heads/main/music/Kenny%20G%20-%20The%20Moment.mp3" type="audio/mpeg">
+    </audio>
+  </div>
+
+  <div class="center" style="margin-top:10px;">
+    <div style="font-weight:700;margin-bottom:6px;">Toccata - Paul Mauriat</div>
+    <audio controls preload="none" playsinline>
+      <source src="https://github.com/nhut990/files/raw/refs/heads/main/music/Toccata%20-%20Paul%20Mauriat%20-%20YouTube.mp3" type="audio/mpeg">
+    </audio>
+  </div>
+
+  <div class="center" style="margin-top:10px;">
+    <div style="font-weight:700;margin-bottom:6px;">Hungarian Sonata - Richard Clayderman</div>
+    <audio controls preload="none" playsinline>
+      <source src="https://github.com/nhut990/files/raw/refs/heads/main/music/Hungarian%20Sonata%20-%20Richard%20Clayderman%20-%20YouTube.mp3" type="audio/mpeg">
+    </audio>
+  </div>
+
+  <div class="center" style="margin-top:10px;">
+    <div style="font-weight:700;margin-bottom:6px;">Amor De Mis Amores - Paul Mauriat</div>
+    <audio controls preload="none" playsinline>
+      <source src="https://github.com/nhut990/files/raw/refs/heads/main/music/Amor%20De%20Mis%20Amores%20-%20Paul%20Mauriat%20-%20YouTube.mp3" type="audio/mpeg">
+    </audio>
+  </div>
+
+  <div class="center" style="margin-top:10px;">
+    <div style="font-weight:700;margin-bottom:6px;">A Comme Amour - Richard Clayderman</div>
+    <audio controls preload="none" playsinline>
+      <source src="https://github.com/nhut990/files/raw/refs/heads/main/music/A%20Comme%20Amour%20-%20Richard%20Clayderman%20-%20YouTube.mp3" type="audio/mpeg">
+    </audio>
+  </div>
+
+  <div class="center" style="margin-top:10px;">
+    <div style="font-weight:700;margin-bottom:6px;">La Isla Bonita - Acoustic Guitar</div>
+    <audio controls preload="none" playsinline>
+      <source src="https://github.com/nhut990/files/raw/refs/heads/main/music/LaIslaBonita-AcounticGuitar.mp3" type="audio/mpeg">
+    </audio>
+  </div>
+
+  <div class="center" style="margin-top:10px;">
+    <div style="font-weight:700;margin-bottom:6px;">Mariage d’Amour - Richard Clayderman</div>
+    <audio controls preload="none" playsinline>
+      <source src="https://github.com/nhut990/files/raw/refs/heads/main/music/Mariage%20d'amour%20-%20Richard%20Clayderman%20-%20YouTube.mp3" type="audio/mpeg">
+    </audio>
+  </div>
+
+  <div class="center" style="margin-top:10px;">
+    <div style="font-weight:700;margin-bottom:6px;">El Bimbo - Paul Mauriat</div>
+    <audio controls preload="none" playsinline>
+      <source src="https://github.com/nhut990/files/raw/refs/heads/main/music/El%20Bimbo%20-%20Paul%20Mauriat%20-%20YouTube.mp3" type="audio/mpeg">
+    </audio>
+  </div>
+
+  <div class="center" style="margin-top:10px;">
+    <div style="font-weight:700;margin-bottom:6px;">Lady Di - Richard Clayderman</div>
+    <audio controls preload="none" playsinline>
+      <source src="https://github.com/nhut990/files/raw/refs/heads/main/music/Richard%20Clayderman%20-%20Lady%20Di%20(Official%20Video)%20-%20YouTube.mp3" type="audio/mpeg">
+    </audio>
+  </div>
+
+  <div class="center" style="margin-top:10px;">
+    <div style="font-weight:700;margin-bottom:6px;">Diva – Nicholas De Angeils</div>
+    <audio controls preload="none" playsinline>
+      <source src="https://github.com/nhut990/files/raw/refs/heads/main/music/Diva%20-%20Nicholas%20De%20Angeils%20-%20YouTube%20(1).mp3" type="audio/mpeg">
+    </audio>
+  </div>
+
+  <div class="center" style="margin-top:10px;">
+    <div style="font-weight:700;margin-bottom:6px;">Alla Figaro - Paul Mauriat</div>
+    <audio controls preload="none" playsinline>
+      <source src="https://github.com/nhut990/files/raw/refs/heads/main/music/Alla%20Figaro%20-%20Paul%20Mauriat%20-%20YouTube.mp3" type="audio/mpeg">
+    </audio>
+  </div>
+
+  <!-- BÀI HÁT MỚI THÊM DƯỚI ALLA FIGARO -->
+  <div class="center" style="margin-top:10px;">
+    <div style="font-weight:700;margin-bottom:6px;">Ballade Pour Adeline - Richard Clayderman</div>
+    <audio controls preload="none" playsinline>
+      <source src="https://github.com/nhut990/files/raw/refs/heads/main/music/Richard%20Clayderman%20-%20Ballade%20Pour%20Adeline.mp3" type="audio/mpeg">
+    </audio>
+  </div>
+  <!-- HẾT BÀI HÁT MỚI -->
+
+  <!-- ================= RADIO ================= -->
+  <div class="radio-box" id="radio-box-1">
+    <div class="radio-title">RADIO FM_99.9MHz</div>
+    <button type="button" class="radio-btn" data-radio="radio-1" aria-pressed="false" aria-label="Nghe Radio FM 99.9"></button>
+    <audio id="radio-1" preload="none"></audio>
+    <div class="wave" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="hint" data-hint-for="radio-1"></div>
+  </div>
+
+  <div class="radio-box" id="radio-box-4">
+    <div class="radio-title">RADIO FM_87.7MHz</div>
+    <button type="button" class="radio-btn" data-radio="radio-4" aria-pressed="false" aria-label="Nghe Radio FM 87.7"></button>
+    <audio id="radio-4" preload="none"></audio>
+    <div class="wave" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="hint" data-hint-for="radio-4"></div>
+  </div>
+
+  <div class="radio-box" id="radio-box-2">
+    <div class="radio-title">RADIO FM_95.6MHz</div>
+    <button type="button" class="radio-btn" data-radio="radio-2" aria-pressed="false" aria-label="Nghe Radio FM 95.6"></button>
+    <audio id="radio-2" preload="none"></audio>
+    <div class="wave" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="hint" data-hint-for="radio-2"></div>
+  </div>
+
+  <div class="radio-box" id="radio-box-3">
+    <div class="radio-title">RADIO AM_610KHz</div>
+    <button type="button" class="radio-btn" data-radio="radio-3" aria-pressed="false" aria-label="Nghe Radio AM 610"></button>
+    <audio id="radio-3" preload="none"></audio>
+    <div class="wave" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="hint" data-hint-for="radio-3"></div>
+  </div>
+
+  <div class="center" style="margin-top:10px;">
+    <span style="color:red;font-size:20px;font-weight:bold;animation:blink 1s infinite;">Đặng Minh Nhựt</span>
+  </div>
+
+  <script>
+    // mapping radioId -> stream url
+    const radioStreams = {
+      "radio-1": "https://strm.voh.com.vn/radio/channel3/playlist.m3u8",
+      "radio-4": "https://strm.voh.com.vn/radio/channel5/playlist.m3u8",
+      "radio-2": "https://strm.voh.com.vn/radio/channel1/playlist.m3u8",
+      "radio-3": "https://strm.voh.com.vn/radio/channel2/playlist.m3u8"
+    };
+
+    // store Hls instances so we can destroy them later
+    const hlsInstances = {};
+
+    // symbols
+    const PLAY_SYM = '\u25B6';
+    const STOP_SYM = '\u23F9';
+    // initialize button labels
+    document.querySelectorAll('.radio-btn').forEach(btn => {
+      btn.textContent = PLAY_SYM + ' Nghe Radio';
+      btn.setAttribute('aria-pressed','false');
+    });
+
+    // audio players for local tracks (non-radio)
+    const musicPlayers = Array.from(document.querySelectorAll("audio:not([id^='radio'])"));
+    musicPlayers.forEach((a, idx) => {
+      a.addEventListener('play', () => {
+        document.querySelectorAll("audio[id^='radio']").forEach(r => {
+          r.pause();
+          const p = r.parentElement;
+          if(p) p.classList.remove('playing');
+          const otherBtn = p?.querySelector('.radio-btn');
+          if(otherBtn) { otherBtn.textContent = PLAY_SYM + ' Nghe Radio'; otherBtn.setAttribute('aria-pressed','false'); }
+          const rid = r.id;
+          if(hlsInstances[rid]){ try{ hlsInstances[rid].destroy(); }catch(e){} delete hlsInstances[rid]; }
+        });
+        musicPlayers.forEach(o => { if(o !== a) o.pause(); });
+      });
+
+      a.addEventListener('ended', () => {
+        const next = musicPlayers[idx+1];
+        if(next){
+          next.play().catch(()=>{});
+        }
+      });
+
+      a.addEventListener('play', function fixZaloPlay() {
+        if (a.paused) {
+          a.load();
+          a.play().catch(()=>{});
+        }
+        a.removeEventListener('play', fixZaloPlay);
+      });
+    });
+
+    function setHintFor(radioId, message){
+      const el = document.querySelector(`[data-hint-for="${radioId}"]`);
+      if(el) el.textContent = message || '';
+    }
+
+    async function playRadio(radioId, boxEl, btn){
+      const radio = document.getElementById(radioId);
+
+      if (radio.paused) {
+        document.querySelectorAll("audio[id^='radio']").forEach(r => {
+          if (r !== radio) {
+            r.pause();
+            const p = r.parentElement;
+            if(p) p.classList.remove('playing');
+            const otherBtn = p?.querySelector('.radio-btn');
+            if(otherBtn){
+              otherBtn.textContent = PLAY_SYM + ' Nghe Radio';
+              otherBtn.setAttribute('aria-pressed','false');
+            }
+            const rid = r.id;
+            if(hlsInstances[rid]){ try{ hlsInstances[rid].destroy(); }catch(e){} delete hlsInstances[rid]; }
+          }
+        });
+
+        musicPlayers.forEach(a => a.pause());
+
+        const src = radioStreams[radioId];
+        setHintFor(radioId, 'Đang kết nối...');
+
+        try {
+          if (window.Hls && Hls.isSupported()) {
+            if(!hlsInstances[radioId]){
+              const hls = new Hls();
+              hlsInstances[radioId] = hls;
+              radio.crossOrigin = "anonymous";
+              hls.loadSource(src);
+              hls.attachMedia(radio);
+            }
+            await radio.play();
+            boxEl.classList.add('playing');
+            btn.textContent = STOP_SYM + ' Dừng Radio';
+            btn.setAttribute('aria-pressed','true');
+            setHintFor(radioId, '');
+          } else if (radio.canPlayType('application/vnd.apple.mpegurl')) {
+            radio.src = src;
+            radio.crossOrigin = "anonymous";
+            await radio.play();
+            boxEl.classList.add('playing');
+            btn.textContent = STOP_SYM + ' Dừng Radio';
+            btn.setAttribute('aria-pressed','true');
+            setHintFor(radioId, '');
+          } else {
+            setHintFor(radioId, 'Trình duyệt không hỗ trợ HLS. Vui lòng thử Safari hoặc dùng trình duyệt hỗ trợ MSE.');
+            btn.textContent = PLAY_SYM + ' Nghe Radio';
+            btn.setAttribute('aria-pressed','false');
+          }
+        } catch (err) {
+          console.error('Radio play error', err);
+          setHintFor(radioId, 'Không thể phát. Kiểm tra kết nối hoặc CORS trên server luồng.');
+          btn.textContent = PLAY_SYM + ' Nghe Radio';
+          btn.setAttribute('aria-pressed','false');
+          if(hlsInstances[radioId]){ try{ hlsInstances[radioId].destroy(); }catch(e){} delete hlsInstances[radioId]; }
+        }
+      } else {
+        radio.pause();
+        boxEl.classList.remove('playing');
+        btn.textContent = PLAY_SYM + ' Nghe Radio';
+        btn.setAttribute('aria-pressed','false');
+        if(hlsInstances[radioId]){ try{ hlsInstances[radioId].destroy(); }catch(e){} delete hlsInstances[radioId]; }
+        setHintFor(radioId, '');
+      }
+    }
+
+    document.querySelectorAll('.radio-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const radioId = btn.getAttribute('data-radio');
+        const boxId = 'radio-box-' + radioId.split('-')[1];
+        const box = document.getElementById(boxId);
+        if(!radioId || !box) return;
+        playRadio(radioId, box, btn);
+      });
+    });
+
+    window.addEventListener('beforeunload', () => {
+      Object.values(hlsInstances).forEach(h => { try{ h.destroy(); }catch(e){} });
+    });
+  </script>
+
+  <div class="center" style="margin-bottom:8px;">
+    <a href="https://nhut990.github.io/" style="font-weight:bold; color:#0072ff; text-decoration:none; font-size:16px;">
+      Quay về trang chủ
+    </a>
+  </div>
+  <footer>© 2025 Nhựt | Powered by GitHub Pages</footer>
 </body>
 </html>
