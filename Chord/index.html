@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chuyển hợp âm & Cuộn</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+        }
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, 'Helvetica Neue', sans-serif;
+            background: linear-gradient(145deg, #f0f2f5 0%, #e6e9ef 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            transition: padding 0.3s;
+        }
+        body.fullscreen-active {
+            padding: 0;
+            background: #0f172a;
+        }
+        .container {
+            max-width: 820px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(6px);
+            border-radius: 28px;
+            padding: 24px 28px 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15), 0 6px 12px rgba(0,0,0,0.05);
+            border: 1px solid rgba(255,255,255,0.5);
+            transition: all 0.3s ease;
+        }
+        .container.fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            max-width: 100%;
+            border-radius: 0;
+            padding: 16px 24px 20px;
+            background: #0f172a;
+            backdrop-filter: none;
+            border: none;
+            box-shadow: none;
+            display: flex;
+            flex-direction: column;
+            z-index: 999;
+            overflow: hidden;
+        }
+        .container.fullscreen .hide-in-full {
+            display: none !important;
+        }
+        .container.fullscreen .display-area {
+            flex: 1;
+            max-height: none;
+            background: #1e293b;
+            color: #e2e8f0;
+            border-color: #334155;
+        }
+        .container.fullscreen .display-area .chord {
+            color: #f87171;
+            background: rgba(248, 113, 113, 0.12);
+        }
+        .container.fullscreen .controls {
+            background: rgba(30, 41, 59, 0.8);
+            border-color: #334155;
+            backdrop-filter: blur(8px);
+            margin-bottom: 0;
+            flex-shrink: 0;
+        }
+        .container.fullscreen .controls label {
+            color: #e2e8f0;
+        }
+        .container.fullscreen .controls .tone-display {
+            background: #334155;
+            color: #f1f5f9;
+        }
+        .container.fullscreen .controls select,
+        .container.fullscreen .controls button {
+            background: #1e293b;
+            color: #f1f5f9;
+            border-color: #475569;
+        }
+        .container.fullscreen .controls select:hover,
+        .container.fullscreen .controls button:hover {
+            background: #334155;
+        }
+        .container.fullscreen .controls .btn-scroll {
+            background: #22c55e;
+        }
+        .container.fullscreen .controls .btn-scroll.stop {
+            background: #ef4444;
+        }
+        .container.fullscreen .footer {
+            color: #64748b;
+        }
+        .container.fullscreen .footer span {
+            color: #f87171;
+        }
+        .container.fullscreen .scroll-controls input[type="range"] {
+            accent-color: #22c55e;
+        }
+        .container.fullscreen .scroll-controls span {
+            color: #e2e8f0;
+        }
+
+        h1 {
+            font-size: 26px;
+            font-weight: 700;
+            margin: 0 0 16px 0;
+            text-align: center;
+            color: #1e293b;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        h1 span {
+            background: #e74c3c;
+            color: white;
+            font-size: 16px;
+            padding: 2px 12px;
+            border-radius: 40px;
+            font-weight: 600;
+        }
+        .input-area {
+            margin-bottom: 18px;
+            transition: opacity 0.3s;
+        }
+        textarea {
+            width: 100%;
+            height: 160px;
+            padding: 14px 16px;
+            border: 2px solid #dce0e6;
+            border-radius: 18px;
+            font-size: 15px;
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: white;
+            resize: vertical;
+            transition: border-color 0.25s, box-shadow 0.25s;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+            line-height: 1.6;
+            color: #0f172a;
+        }
+        textarea:focus {
+            border-color: #e74c3c;
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(231, 76, 60, 0.15);
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px 18px;
+            background: rgba(255,255,255,0.6);
+            padding: 14px 20px;
+            border-radius: 40px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255,255,255,0.8);
+            transition: background 0.3s, border-color 0.3s;
+        }
+        .controls .group {
+            display: flex;
+            align-items: center;
+            gap: 6px 12px;
+            flex-wrap: wrap;
+        }
+        .controls label {
+            font-weight: 600;
+            font-size: 14px;
+            color: #2c3e50;
+            letter-spacing: 0.3px;
+        }
+        .controls select, .controls button {
+            padding: 8px 14px;
+            border-radius: 40px;
+            border: 1px solid #cbd5e1;
+            background: white;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.15s;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+            font-family: inherit;
+        }
+        .controls select:hover, .controls button:hover {
+            border-color: #94a3b8;
+            background: #f8fafc;
+        }
+        .controls button {
+            background: #1e293b;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            font-weight: 600;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+        }
+        .controls button:hover {
+            background: #0f172a;
+            transform: scale(0.97);
+        }
+        .controls button:active {
+            transform: scale(0.94);
+        }
+        .controls .btn-transpose {
+            background: #e67e22;
+        }
+        .controls .btn-transpose:hover {
+            background: #d35400;
+        }
+        .controls .btn-reset {
+            background: #64748b;
+        }
+        .controls .btn-reset:hover {
+            background: #475569;
+        }
+        .controls .btn-scroll {
+            background: #27ae60;
+        }
+        .controls .btn-scroll:hover {
+            background: #1e8449;
+        }
+        .controls .btn-scroll.stop {
+            background: #e74c3c;
+        }
+        .controls .btn-scroll.stop:hover {
+            background: #c0392b;
+        }
+        .controls .btn-fullscreen {
+            background: #8b5cf6;
+        }
+        .controls .btn-fullscreen:hover {
+            background: #7c3aed;
+        }
+        .controls .btn-fullscreen.active {
+            background: #ef4444;
+        }
+        .controls .btn-fullscreen.active:hover {
+            background: #dc2626;
+        }
+        .controls .tone-display {
+            font-size: 20px;
+            font-weight: 700;
+            min-width: 60px;
+            text-align: center;
+            color: #0f172a;
+            background: #eef2f6;
+            padding: 4px 12px;
+            border-radius: 40px;
+        }
+        .controls .scroll-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px 14px;
+            flex-wrap: wrap;
+            margin-left: auto;
+        }
+        .controls .scroll-controls input[type="range"] {
+            width: 100px;
+            cursor: pointer;
+            accent-color: #27ae60;
+        }
+        .controls .scroll-controls span {
+            font-size: 14px;
+            font-weight: 500;
+            min-width: 24px;
+            color: #1e293b;
+        }
+        .controls .font-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .controls .font-controls button {
+            padding: 4px 10px;
+            font-size: 16px;
+            font-weight: 700;
+            background: #3b82f6;
+            min-width: 32px;
+        }
+        .controls .font-controls button:hover {
+            background: #2563eb;
+        }
+        .controls .font-controls span {
+            min-width: 36px;
+            text-align: center;
+            font-weight: 600;
+        }
+        .transpose-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .transpose-group .transpose-label {
+            font-weight: 700;
+            color: #2c3e50;
+            letter-spacing: 0.5px;
+            margin-right: 4px;
+        }
+        .transpose-group button {
+            flex: 1;
+            min-width: 60px;
+            text-align: center;
+            justify-content: center;
+        }
+        .transpose-group .btn-transpose,
+        .transpose-group .btn-reset {
+            flex: 1;
+            min-width: 60px;
+            padding: 8px 12px;
+        }
+        .display-area {
+            border-radius: 20px;
+            padding: 24px 28px;
+            min-height: 280px;
+            max-height: 480px;
+            overflow-y: auto;
+            background: #ffffff;
+            font-size: 22px;
+            line-height: 2.4;
+            white-space: pre-wrap;
+            word-break: break-word;
+            border: 1px solid #e9edf2;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.02);
+            transition: box-shadow 0.2s, background 0.3s, color 0.3s, border-color 0.3s;
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            scroll-behavior: smooth;
+            text-align: center; /* Căn giữa toàn bộ nội dung */
+        }
+        .display-area::-webkit-scrollbar {
+            width: 8px;
+        }
+        .display-area::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 12px;
+        }
+        .display-area::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 12px;
+        }
+        .display-area::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .display-area .chord {
+            font-weight: 700;
+            color: #e74c3c;
+            background: rgba(231, 76, 60, 0.06);
+            padding: 0 4px;
+            border-radius: 6px;
+            transition: background 0.15s;
+        }
+        .display-area .chord:hover {
+            background: rgba(231, 76, 60, 0.16);
+        }
+        .footer {
+            margin-top: 18px;
+            text-align: center;
+            font-size: 13px;
+            color: #94a3b8;
+            transition: color 0.3s;
+        }
+        .footer span {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+        @media (max-width: 640px) {
+            .container { padding: 16px; }
+            .controls { flex-direction: column; align-items: stretch; gap: 10px; }
+            .controls .scroll-controls { margin-left: 0; justify-content: center; }
+            .display-area { font-size: 18px; padding: 16px; }
+            .transpose-group button {
+                min-width: 50px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container" id="appContainer">
+    <h1 class="hide-in-full">🎸 Chuyển hợp âm <span>beta</span></h1>
+    <div class="input-area hide-in-full">
+        <textarea id="lyricsInput" placeholder="Nhập bài hát với hợp âm trong dấu () hoặc []&#10;Ví dụ: 1. Một nửa ba [Dm] năm anh yêu tình  [G] áo giày quân [Dm] nhân">1. Một nửa ba [Dm] năm anh yêu tình  [G] áo giày quân [Dm] nhân 
+Đường xuôi [Gm] ghế lại đôi [Dm] lần</textarea>
+    </div>
+
+    <div class="controls">
+        <div class="group hide-in-full">
+            <label for="rootSelect">Tone gốc</label>
+            <select id="rootSelect">
+                <option value="C">C</option>
+                <option value="C#">C#</option>
+                <option value="D" selected>D</option>
+                <option value="D#">D#</option>
+                <option value="E">E</option>
+                <option value="F">F</option>
+                <option value="F#">F#</option>
+                <option value="G">G</option>
+                <option value="G#">G#</option>
+                <option value="A">A</option>
+                <option value="A#">A#</option>
+                <option value="B">B</option>
+            </select>
+        </div>
+        <div class="group hide-in-full">
+            <label for="typeSelect">Loại</label>
+            <select id="typeSelect">
+                <option value="major">Trưởng</option>
+                <option value="minor" selected>Thứ</option>
+            </select>
+        </div>
+        <div class="group hide-in-full">
+            <label>Hiện tại</label>
+            <span class="tone-display" id="currentToneDisplay">Dm</span>
+        </div>
+
+        <div class="transpose-group hide-in-full">
+            <span class="transpose-label">TRANSPOSE</span>
+            <button class="btn-transpose" id="downBtn">GIẢM</button>
+            <button class="btn-transpose" id="upBtn">TĂNG</button>
+            <button class="btn-reset" id="resetBtn">⟲ Reset</button>
+            <button class="btn-reset" id="clearBtn" style="background:#b91c1c;">✖ Xóa</button>
+        </div>
+
+        <div class="scroll-controls">
+            <button class="btn-scroll" id="scrollToggleBtn">▶ Cuộn</button>
+            <label>Tốc độ</label>
+            <input type="range" id="speedSlider" min="1" max="20" value="8">
+            <span id="speedLabel">8</span>
+            <div class="font-controls">
+                <label>Cỡ chữ</label>
+                <button id="fontMinusBtn" title="Thu nhỏ">A−</button>
+                <span id="fontSizeDisplay">22</span>
+                <button id="fontPlusBtn" title="Phóng to">A+</button>
+            </div>
+            <button class="btn-fullscreen" id="fullscreenBtn">⛶ Full</button>
+        </div>
+    </div>
+
+    <div class="display-area" id="displayArea">
+        <!-- Kết quả hiển thị -->
+    </div>
+    <div class="footer hide-in-full">
+        Hợp âm trong <span>( )</span> hoặc <span>[ ]</span> sẽ tự động đỏ & đậm. Dùng phím <kbd>↑</kbd> <kbd>↓</kbd> để chuyển tone nhanh.
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ---------- Cấu hình nốt ----------
+        const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+        const FLAT_TO_SHARP = {
+            "Bb": "A#",
+            "Eb": "D#",
+            "Ab": "G#",
+            "Db": "C#",
+            "Gb": "F#",
+            "Cb": "B",
+            "Fb": "E"
+        };
+        const SHARP_TO_FLAT = {
+            "C#": "Db",
+            "D#": "Eb",
+            "F#": "Gb",
+            "G#": "Ab",
+            "A#": "Bb"
+        };
+        const FLAT_KEYS_MAJOR = ["F", "Bb", "Eb", "Ab", "Db", "Gb"];
+        const FLAT_KEYS_MINOR = ["D", "G", "C", "F", "Bb", "Eb"];
+
+        // ---------- DOM ----------
+        const container = document.getElementById('appContainer');
+        const inputEl = document.getElementById('lyricsInput');
+        const displayEl = document.getElementById('displayArea');
+        const rootSelect = document.getElementById('rootSelect');
+        const typeSelect = document.getElementById('typeSelect');
+        const currentToneDisplay = document.getElementById('currentToneDisplay');
+        const upBtn = document.getElementById('upBtn');
+        const downBtn = document.getElementById('downBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const scrollToggleBtn = document.getElementById('scrollToggleBtn');
+        const speedSlider = document.getElementById('speedSlider');
+        const speedLabel = document.getElementById('speedLabel');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const fontPlusBtn = document.getElementById('fontPlusBtn');
+        const fontMinusBtn = document.getElementById('fontMinusBtn');
+        const fontSizeDisplay = document.getElementById('fontSizeDisplay');
+
+        // ---------- Trạng thái ----------
+        let baseRoot = 'D';
+        let baseType = 'minor';
+        let currentRoot = 'D';
+        let currentType = 'minor';
+        let parsedData = [];
+        let scrollInterval = null;
+        let isScrolling = false;
+        let isFullscreen = false;
+        let currentFontSize = 22;
+
+        // ---------- Hàm xác định ưu tiên dấu giáng ----------
+        function isFlatPreferred(root, type) {
+            if (type === 'major') {
+                return FLAT_KEYS_MAJOR.includes(root);
+            }
+            if (type === 'minor') {
+                return FLAT_KEYS_MINOR.includes(root);
+            }
+            return false;
+        }
+
+        function getFullTone(root, type) {
+            return type === 'major' ? root : root + 'm';
+        }
+
+        function updateBaseTone() {
+            baseRoot = rootSelect.value;
+            baseType = typeSelect.value;
+            currentRoot = baseRoot;
+            currentType = baseType;
+            updateDisplay();
+        }
+
+        // ---------- Hàm tiện ích ----------
+        function getNoteIndex(note) {
+            const idx = NOTES.indexOf(note);
+            if (idx === -1) {
+                if (FLAT_TO_SHARP[note]) return NOTES.indexOf(FLAT_TO_SHARP[note]);
+                return -1;
+            }
+            return idx;
+        }
+
+        function getDisplayName(rootSharp, type) {
+            let displayRoot = rootSharp;
+            if (isFlatPreferred(currentRoot, currentType) && SHARP_TO_FLAT[rootSharp]) {
+                displayRoot = SHARP_TO_FLAT[rootSharp];
+            }
+            return type === 'major' ? displayRoot : displayRoot + 'm';
+        }
+
+        // ---------- Cải tiến parseChord để bắt mọi trường hợp ----------
+        function parseChord(chordStr) {
+            chordStr = chordStr.trim();
+            if (!chordStr) return null;
+
+            const match = chordStr.match(/^([A-G][#b]?)(.*)$/);
+            if (match) {
+                let root = match[1];
+                let quality = match[2] || '';
+                let rootSharp = root;
+                if (FLAT_TO_SHARP[root]) rootSharp = FLAT_TO_SHARP[root];
+                if (NOTES.indexOf(rootSharp) !== -1) {
+                    return { rootSharp, quality };
+                }
+            }
+
+            const firstChar = chordStr.charAt(0).toUpperCase();
+            if (/[A-G]/.test(firstChar)) {
+                let rootSharp = firstChar;
+                if (FLAT_TO_SHARP[rootSharp]) rootSharp = FLAT_TO_SHARP[rootSharp];
+                if (NOTES.indexOf(rootSharp) !== -1) {
+                    let quality = chordStr.substring(1).trim();
+                    return { rootSharp, quality };
+                }
+            }
+
+            return null;
+        }
+
+        function transposeRoot(rootSharp, offset) {
+            const idx = NOTES.indexOf(rootSharp);
+            if (idx === -1) return rootSharp;
+            const newIdx = (idx + offset + 12) % 12;
+            return NOTES[newIdx];
+        }
+
+        // ---------- Xử lý parse văn bản ----------
+        function parseLyrics(text) {
+            const regex = /[\[\(]([^\]\)]*)[\]\)]/g;
+            let match, lastIndex = 0;
+            const result = [];
+            while ((match = regex.exec(text)) !== null) {
+                const fullMatch = match[0];
+                const chordText = match[1];
+                const start = match.index;
+                const end = start + fullMatch.length;
+                if (start > lastIndex) {
+                    result.push({ type: 'text', content: text.substring(lastIndex, start) });
+                }
+                const chordInfo = parseChord(chordText);
+                if (chordInfo) {
+                    result.push({
+                        type: 'chord',
+                        content: fullMatch,
+                        chordInfo: chordInfo
+                    });
+                } else {
+                    result.push({ type: 'text', content: fullMatch });
+                }
+                lastIndex = end;
+            }
+            if (lastIndex < text.length) {
+                result.push({ type: 'text', content: text.substring(lastIndex) });
+            }
+            return result;
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // ---------- Render ----------
+        function updateDisplay() {
+            const text = inputEl.value;
+            parsedData = parseLyrics(text);
+            const baseIdx = getNoteIndex(baseRoot);
+            const currentIdx = getNoteIndex(currentRoot);
+            const offset = (currentIdx - baseIdx + 12) % 12;
+            let effectiveOffset = offset;
+            if (offset > 6) effectiveOffset = offset - 12;
+
+            let html = '';
+            for (const item of parsedData) {
+                if (item.type === 'text') {
+                    html += escapeHtml(item.content);
+                } else if (item.type === 'chord') {
+                    const chord = item.chordInfo;
+                    let rootSharp = chord.rootSharp;
+                    const quality = chord.quality;
+                    if (effectiveOffset !== 0) {
+                        rootSharp = transposeRoot(rootSharp, effectiveOffset);
+                    }
+                    let displayRoot = rootSharp;
+                    if (isFlatPreferred(currentRoot, currentType) && SHARP_TO_FLAT[rootSharp]) {
+                        displayRoot = SHARP_TO_FLAT[rootSharp];
+                    }
+                    html += `<span class="chord">${escapeHtml(displayRoot + quality)}</span>`;
+                }
+            }
+            displayEl.innerHTML = html;
+            displayEl.style.fontSize = currentFontSize + 'px';
+            currentToneDisplay.textContent = getFullTone(currentRoot, currentType);
+        }
+
+        // ---------- Điều chỉnh cỡ chữ ----------
+        function changeFontSize(delta) {
+            let newSize = currentFontSize + delta;
+            if (newSize < 12) newSize = 12;
+            if (newSize > 40) newSize = 40;
+            if (newSize !== currentFontSize) {
+                currentFontSize = newSize;
+                fontSizeDisplay.textContent = currentFontSize;
+                displayEl.style.fontSize = currentFontSize + 'px';
+            }
+        }
+
+        // ---------- Transpose ----------
+        function changeTone(step) {
+            const idx = getNoteIndex(currentRoot);
+            if (idx === -1) return;
+            const newIdx = (idx + step + 12) % 12;
+            currentRoot = NOTES[newIdx];
+            updateDisplay();
+        }
+
+        function resetTone() {
+            currentRoot = baseRoot;
+            currentType = baseType;
+            rootSelect.value = baseRoot;
+            typeSelect.value = baseType;
+            updateDisplay();
+        }
+
+        function clearText() {
+            inputEl.value = '';
+            updateDisplay();
+            if (isScrolling) stopScroll();
+        }
+
+        // ---------- Cuộn tự động ----------
+        function startScroll() {
+            if (scrollInterval) stopScroll();
+            const speed = parseInt(speedSlider.value, 10);
+            const step = Math.max(1, Math.round(speed * 0.12));
+            const interval = Math.max(50, 500 - speed * 22);
+            scrollInterval = setInterval(() => {
+                displayEl.scrollTop += step;
+                if (displayEl.scrollTop >= displayEl.scrollHeight - displayEl.clientHeight) {
+                    stopScroll();
+                }
+            }, interval);
+            isScrolling = true;
+            scrollToggleBtn.textContent = '⏹ Dừng';
+            scrollToggleBtn.classList.add('stop');
+        }
+
+        function stopScroll() {
+            if (scrollInterval) {
+                clearInterval(scrollInterval);
+                scrollInterval = null;
+            }
+            isScrolling = false;
+            scrollToggleBtn.textContent = '▶ Cuộn';
+            scrollToggleBtn.classList.remove('stop');
+        }
+
+        function toggleScroll() {
+            if (isScrolling) {
+                stopScroll();
+            } else {
+                startScroll();
+            }
+        }
+
+        // ---------- Fullscreen ----------
+        function toggleFullscreen() {
+            isFullscreen = !isFullscreen;
+            if (isFullscreen) {
+                container.classList.add('fullscreen');
+                document.body.classList.add('fullscreen-active');
+                fullscreenBtn.textContent = '✕ Thoát';
+                fullscreenBtn.classList.add('active');
+                if (isScrolling) stopScroll();
+            } else {
+                container.classList.remove('fullscreen');
+                document.body.classList.remove('fullscreen-active');
+                fullscreenBtn.textContent = '⛶ Full';
+                fullscreenBtn.classList.remove('active');
+            }
+        }
+
+        // ---------- Sự kiện ----------
+        inputEl.addEventListener('input', updateDisplay);
+
+        rootSelect.addEventListener('change', function() {
+            baseRoot = this.value;
+            currentRoot = baseRoot;
+            updateDisplay();
+        });
+
+        typeSelect.addEventListener('change', function() {
+            baseType = this.value;
+            currentType = baseType;
+            updateDisplay();
+        });
+
+        upBtn.addEventListener('click', () => changeTone(1));
+        downBtn.addEventListener('click', () => changeTone(-1));
+        resetBtn.addEventListener('click', resetTone);
+        clearBtn.addEventListener('click', clearText);
+        scrollToggleBtn.addEventListener('click', toggleScroll);
+        fullscreenBtn.addEventListener('click', toggleFullscreen);
+
+        speedSlider.addEventListener('input', function() {
+            const val = this.value;
+            speedLabel.textContent = val;
+            if (isScrolling) {
+                stopScroll();
+                startScroll();
+            }
+        });
+
+        fontPlusBtn.addEventListener('click', () => changeFontSize(2));
+        fontMinusBtn.addEventListener('click', () => changeFontSize(-2));
+
+        document.addEventListener('keydown', function(e) {
+            if (e.target.tagName === 'TEXTAREA') return;
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                changeTone(1);
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                changeTone(-1);
+            } else if (e.key === 'f' || e.key === 'F') {
+                if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+                    e.preventDefault();
+                    toggleFullscreen();
+                }
+            } else if (e.key === '+' || e.key === '=') {
+                e.preventDefault();
+                changeFontSize(2);
+            } else if (e.key === '-') {
+                e.preventDefault();
+                changeFontSize(-2);
+            }
+        });
+
+        // ---------- Khởi tạo ----------
+        rootSelect.value = 'D';
+        typeSelect.value = 'minor';
+        baseRoot = 'D';
+        baseType = 'minor';
+        currentRoot = 'D';
+        currentType = 'minor';
+        currentFontSize = 22;
+        fontSizeDisplay.textContent = currentFontSize;
+        updateDisplay();
+
+        window.addEventListener('beforeunload', function() {
+            if (scrollInterval) clearInterval(scrollInterval);
+        });
+    })();
+</script>
+</body>
+</html>
